@@ -37,6 +37,7 @@ Responsible for helping with backend development, AI prompt design, testing CV r
 | 05 May 2026 | Mikhail Makarchuk | Designed and uploaded the project logo |
 | 16 May 2026 | Maksim Pinchuk | Added repository folders: Data, Documentation, Logs, and Source |
 | 16 May 2026 | Alexandr An | Created Daily Logs and added them to the README file |
+| 16 May 2026 | Konstantin Shevtsov | Prepared the System Design document and workflow structure |
 
 ## GitHub Setup
 
