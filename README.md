@@ -38,7 +38,7 @@ Responsible for helping with backend development, AI prompt design, testing CV r
 | 16 May 2026 | Maksim Pinchuk | Added repository folders: Data, Documentation, Logs, and Source |
 | 16 May 2026 | Alexandr An | Created Daily Logs and added them to the README file |
 | 16 May 2026 | Konstantin Shevtsov | Prepared the System Design document and workflow structure |
-| 18 May 2026 | Alexandr An | Added Problem Analysis document |
+| 18 May 2026 | Alexandr An | Added Problem Analysis and Datasets document |
 
 ## GitHub Setup
 
