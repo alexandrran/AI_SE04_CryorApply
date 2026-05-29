@@ -1,4 +1,4 @@
-# CryorApply — AI CV Reviewer
+# CryorApply - AI CV Reviewer
 
 ## Introduction Brief
 
@@ -10,21 +10,21 @@ Many students and beginner job seekers find it hard to make a good CV. They ofte
 
 ## Team and Roles
 
-### Konstantin Shevtsov — Team Lead / Frontend Developer
+### Alexandr An - Team Lead / Backend Developer
 
-Responsible for coordinating the team, distributing tasks, tracking deadlines, preparing weekly updates, and helping with frontend development, including UI structure and user experience.
+Responsible for coordinating the team, tracking deadlines, managing GitHub updates, preparing weekly progress notes, backend development, API endpoints, CV upload and processing, and backend support for database and AI service integration.
 
-### Mikhail Makarchuk — Frontend Developer
+### Konstantin Shevtsov - AI & Testing Specialist / Frontend Developer
 
-Responsible for designing and developing the user interface, CV upload page, result page, and making the website easy to use.
+Responsible for AI prompt design, testing CV review quality, preparing sample CVs, improving feedback structure, and helping with frontend development, including user flow and results page integration.
 
-### Maksim Pinchuk — Backend Developer
+### Mikhail Makarchuk - Frontend Developer / UI/UX Designer
 
-Responsible for backend logic, API endpoints, CV upload and processing, and integration with AI services.
+Responsible for designing and developing the user interface, CV upload page, authentication screens, result page layout, and making the website easy to use.
 
-### Alexandr An — Backend Developer / AI & Testing Specialist
+### Maksim Pinchuk - Backend Developer / Data Integration
 
-Responsible for helping with backend development, AI prompt design, testing CV review results, preparing sample CVs, and improving feedback quality.
+Responsible for backend logic, PDF/DOCX text extraction, Supabase database and storage integration, authentication backend support, and shared backend implementation tasks with Alexandr An.
 
 # Daily Logs
 
@@ -40,6 +40,7 @@ Responsible for helping with backend development, AI prompt design, testing CV r
 | 16 May 2026 | Konstantin Shevtsov | Prepared the System Design document and workflow structure |
 | 18 May 2026 | Alexandr An | Added Problem Analysis and Datasets document |
 | 18 May 2026 | Maksim Pinchuk | Added Tools and Technologies document |
+| 29 May 2026 | Alexandr An | Updated team roles and responsibilities: Alexandr as Team Lead and Backend Developer, Konstantin as AI and Frontend Developer |
 
 ## GitHub Setup
 
@@ -48,5 +49,6 @@ The GitHub repository for the project has been created and is available at:
 https://github.com/alexandrran/AI_SE04_CryorApply
 
 ## Mind Map
+
 <img width="3421" height="8336" alt="NotebookLM Mind Map (2)" src="https://github.com/user-attachments/assets/47d5d86a-7ec9-4cbd-8fdb-446381ec6b51" />
 
