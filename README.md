@@ -40,7 +40,7 @@ Responsible for backend logic, PDF/DOCX text extraction, Supabase database and s
 | 16 May 2026 | Konstantin Shevtsov | Prepared the System Design document and workflow structure |
 | 18 May 2026 | Alexandr An | Added Problem Analysis and Datasets document |
 | 18 May 2026 | Maksim Pinchuk | Added Tools and Technologies document |
-| 29 May 2026 | Alexandr An | Updated team roles and responsibilities: Alexandr as Team Lead and Backend |
+| 29 May 2026 | Alexandr An | Updated team roles and responsibilities: Alexandr as Team Lead and Backend, created and added Progress Presentation |
 | 29 May 2026 | Maksim Pinchuk | Initialized the backend application, added core project files and dependencies |
 | 29 May 2026 | Mikhail Makarchuk | Created and added the frontend part |
 | 29 May 2026 | Konstantin Shevtsov | Add API contract and AI prompt documentation |
