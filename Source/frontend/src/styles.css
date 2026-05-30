@@ -1,0 +1,260 @@
+:root {
+  color: #16201f;
+  background: #f7f8f5;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button {
+  font: inherit;
+}
+
+.app-shell {
+  min-height: 100vh;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 440px);
+  gap: 48px;
+  align-items: center;
+  min-height: 68vh;
+  padding: 64px clamp(20px, 5vw, 84px) 42px;
+  background:
+    linear-gradient(120deg, rgba(17, 93, 86, 0.92), rgba(16, 31, 38, 0.84)),
+    url("../../../First Logo.jpg") center/cover;
+  color: #ffffff;
+}
+
+.hero-copy {
+  max-width: 720px;
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8ee0d2;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(3.5rem, 8vw, 6.8rem);
+  line-height: 0.92;
+}
+
+.lead {
+  max-width: 640px;
+  margin: 24px 0 0;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 1.2rem;
+  line-height: 1.7;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 32px;
+}
+
+.primary-action,
+.icon-action {
+  border: 0;
+  color: #0e2926;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.primary-action {
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 20px;
+  border-radius: 8px;
+  font-weight: 800;
+}
+
+.icon-action {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 8px;
+}
+
+.upload-panel {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(16px);
+}
+
+.upload-target {
+  display: grid;
+  min-height: 230px;
+  place-items: center;
+  padding: 26px;
+  border: 2px dashed rgba(255, 255, 255, 0.58);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.upload-target span,
+.file-row span {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.file-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.file-row div {
+  display: grid;
+  gap: 2px;
+}
+
+.workflow-band {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: #d6ddd7;
+}
+
+.workflow-step {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  min-height: 92px;
+  padding: 22px clamp(18px, 3vw, 36px);
+  background: #ffffff;
+  font-weight: 800;
+}
+
+.workflow-step svg {
+  color: #16766b;
+}
+
+.results-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 360px) 1fr;
+  gap: 28px;
+  padding: 44px clamp(20px, 5vw, 84px) 72px;
+}
+
+.score-panel,
+.feedback-card {
+  border: 1px solid #dbe2dc;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.score-panel {
+  padding: 28px;
+}
+
+.score-value {
+  margin-top: 12px;
+  font-size: 5.2rem;
+  font-weight: 900;
+  line-height: 1;
+  color: #115d56;
+}
+
+.score-label {
+  display: block;
+  margin: 6px 0 22px;
+  font-weight: 800;
+}
+
+.score-panel p:last-child {
+  margin: 0;
+  color: #526260;
+  line-height: 1.7;
+}
+
+.feedback-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.feedback-card {
+  padding: 22px;
+}
+
+.feedback-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+.feedback-card h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.feedback-header span {
+  font-weight: 900;
+  color: #115d56;
+}
+
+.meter {
+  height: 8px;
+  margin: 16px 0;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #edf1ed;
+}
+
+.meter div {
+  height: 100%;
+  border-radius: inherit;
+  background: #f2b84b;
+}
+
+.feedback-card p {
+  margin: 0;
+  color: #526260;
+  line-height: 1.6;
+}
+
+@media (max-width: 860px) {
+  .hero,
+  .results-layout,
+  .feedback-grid,
+  .workflow-band {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    min-height: auto;
+    padding-top: 44px;
+  }
+
+  .workflow-step {
+    min-height: 72px;
+  }
+}
