@@ -59,17 +59,17 @@ This distribution keeps the workload balanced: Alexandr handles leadership and c
 | 8 | Prepare System Design document and workflow structure | Konstantin Shevtsov | 16 May 2026 | 16 May 2026 | Completed |
 | 9 | Add Problem Analysis and Dataset document | Alexandr An | 18 May 2026 | 18 May 2026 | Completed |
 | 10 | Add Tools and Technologies document | Maksim Pinchuk | 18 May 2026 | 18 May 2026 | Completed |
-| 11 | Prepare Project Plan with milestones and Gantt Chart | Alexandr An / Konstantin Shevtsov | 18 May 2026 | 20 May 2026 | In Progress |
-| 12 | Coordinate team work and task delegation | Alexandr An | 20 May 2026 | 30 May 2026 | Planned |
-| 13 | Track deadlines and GitHub updates before progress presentation | Alexandr An | 20 May 2026 | 30 May 2026 | Planned |
-| 14 | Review and update documentation before progress presentation | Entire Team | 20 May 2026 | 28 May 2026 | Planned |
-| 15 | Prepare frontend page structure and user flow | Konstantin Shevtsov / Mikhail Makarchuk | 20 May 2026 | 29 May 2026 | Planned |
-| 16 | Design CV upload page and results page | Mikhail Makarchuk | 20 May 2026 | 29 May 2026 | Planned |
-| 17 | Prepare early frontend prototype for progress presentation | Mikhail Makarchuk | 22 May 2026 | 29 May 2026 | Planned |
-| 18 | Prepare backend structure and API planning | Alexandr An / Maksim Pinchuk | 22 May 2026 | 29 May 2026 | Planned |
-| 19 | Prepare AI prompt structure and testing plan | Konstantin Shevtsov | 22 May 2026 | 29 May 2026 | Planned |
-| 20 | Prepare progress presentation slides | Entire Team | 27 May 2026 | 30 May 2026 | Planned |
-| 21 | Progress presentation | Entire Team | 30 May 2026 | 30 May 2026 | Planned |
+| 11 | Prepare Project Plan with milestones and Gantt Chart | Alexandr An / Konstantin Shevtsov | 18 May 2026 | 20 May 2026 | Completed |
+| 12 | Coordinate team work and task delegation | Alexandr An | 20 May 2026 | 30 May 2026 | In Progress |
+| 13 | Track deadlines and GitHub updates before progress presentation | Alexandr An | 20 May 2026 | 30 May 2026 | In Progress |
+| 14 | Review and update documentation before progress presentation | Entire Team | 20 May 2026 | 28 May 2026 | Completed |
+| 15 | Prepare frontend page structure and user flow | Konstantin Shevtsov / Mikhail Makarchuk | 20 May 2026 | 29 May 2026 | Completed |
+| 16 | Design CV upload page and results page | Mikhail Makarchuk | 20 May 2026 | 29 May 2026 | Completed |
+| 17 | Prepare early frontend prototype for progress presentation | Mikhail Makarchuk | 22 May 2026 | 29 May 2026 | Completed |
+| 18 | Prepare backend structure and API planning | Alexandr An / Maksim Pinchuk | 22 May 2026 | 29 May 2026 | Completed |
+| 19 | Prepare AI prompt structure and testing plan | Konstantin Shevtsov | 22 May 2026 | 29 May 2026 | Completed |
+| 20 | Prepare progress presentation slides | Entire Team | 27 May 2026 | 30 May 2026 | Completed |
+| 21 | Progress presentation | Entire Team | 30 May 2026 | 30 May 2026 | In Progress |
 | 22 | Implement CV upload functionality | Alexandr An / Maksim Pinchuk | 01 June 2026 | 07 June 2026 | Planned |
 | 23 | Implement PDF and DOCX text extraction | Maksim Pinchuk | 03 June 2026 | 10 June 2026 | Planned |
 | 24 | Implement authentication pages | Mikhail Makarchuk | 05 June 2026 | 12 June 2026 | Planned |
