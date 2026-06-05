@@ -45,7 +45,7 @@ Responsible for backend logic, PDF/DOCX text extraction, Supabase database and s
 | 29 May 2026 | Mikhail Makarchuk | Created and added the frontend part |
 | 29 May 2026 | Konstantin Shevtsov | Add API contract and AI prompt documentation |
 | 5 June 2026 | Maksim Pinchuk | Extend CORS for frontend on ports 5173 and 5174 and implement rule-based CV analysis and scoring|
-
+| 5 June 2026 | Mikhail Makarchuk | Implemented and styled the CV review upload flow with backend integration, validation, and dynamic result rendering.|
 ## GitHub Setup
 
 The GitHub repository for the project has been created and is available at:
