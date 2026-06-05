@@ -1,6 +1,6 @@
 # CryorApply Backend
 
-FastAPI service for CV upload, text extraction, and AI feedback generation.
+FastAPI service for CV upload, text extraction, and structured CV feedback.
 
 ## Local Run
 
@@ -23,7 +23,16 @@ uvicorn app.main:app --reload
 ## Current Endpoints
 
 - `GET /health` checks that the API is running.
-- `POST /api/cv/review` accepts a CV file and returns mocked structured feedback.
+- `POST /api/cv/review` accepts a PDF or DOCX CV file and returns structured feedback.
 
-The next implementation step is to replace the mock text extraction and mock AI
-analysis with real PDF/DOCX parsing and an AI provider integration.
+## Current Processing Flow
+
+1. The API receives a CV file through multipart form data.
+2. The backend validates the file name, file type, and size.
+3. PDF files are parsed with `pypdf`.
+4. DOCX files are parsed with `python-docx`.
+5. Extracted text is reviewed with rule-based prototype logic.
+6. The API returns a JSON response with an overall score, category feedback, and next steps.
+
+The next implementation step is to replace the rule-based feedback with an AI
+provider integration while keeping the same response format for the frontend.

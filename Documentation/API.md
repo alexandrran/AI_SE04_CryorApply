@@ -33,37 +33,45 @@ Form fields:
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `file` | `PDF` or `DOCX` file | Yes | CV uploaded by the user |
+| `file` | `PDF` or `DOCX` file | Yes | CV uploaded by the user. Maximum size: 10 MB |
+
+Processing:
+
+1. Backend validates file name, type, and size.
+2. PDF text is extracted with `pypdf`.
+3. DOCX text is extracted with `python-docx`.
+4. Extracted text is analyzed with rule-based prototype logic.
+5. The response is returned as structured JSON for the frontend.
 
 Response:
 
 ```json
 {
   "filename": "student-cv.pdf",
-  "overall_score": 76,
-  "summary": "The CV has a workable structure for a junior candidate...",
+  "overall_score": 74,
+  "summary": "The CV has the main sections in place, but it should show more specific skills...",
   "feedback": [
     {
       "category": "Structure",
-      "score": 82,
-      "message": "The CV should be easy to scan...",
+      "score": 78,
+      "message": "The CV includes 3 of 4 expected sections: education, skills, experience, and projects.",
       "suggestions": [
-        "Keep education, skills, projects, and experience as separate sections."
+        "Add a clear Projects section."
       ]
     }
   ],
   "next_steps": [
-    "Add measurable project outcomes.",
-    "Match keywords from the target job description."
+    "Add projects with technologies used, your role, and outcomes.",
+    "Compare the CV with a target job description and add missing keywords."
   ]
 }
 ```
 
-## Planned Error Responses
+## Error Responses
 
 | Status | Reason |
 |---|---|
 | `400` | Missing file or unsupported file type |
 | `413` | File is too large |
 | `422` | CV text could not be extracted |
-| `500` | AI analysis failed |
+| `500` | Unexpected server error |
