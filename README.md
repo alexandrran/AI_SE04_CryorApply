@@ -49,6 +49,7 @@ Responsible for backend logic, PDF/DOCX text extraction, Supabase database and s
 | 5 June 2026 | Alexandr An | Add CV text extraction validation |
 | 9 June 2026 | Konstantin Shevtsov | Add Vercel serverless deployment: wrap FastAPI in a Python function, build frontend as static, route API via vercel.json |
 | 9 June 2026 | Konstantin Shevtsov | Redesign frontend into a step-by-step wizard (CV, target role, review) with framer-motion animations, animated score ring, skeleton loading, and a refreshed visual style |
+| 9 June 2026 | Alexandr An | Added apply rewrites and re-score flow: users can apply suggested CV text improvements, re-run the review, and see the score change without changing the CV structure |
 
 ## Deploy to Vercel (serverless)
 
@@ -87,4 +88,3 @@ https://github.com/alexandrran/AI_SE04_CryorApply
 ## Mind Map
 
 <img width="3421" height="8336" alt="NotebookLM Mind Map (2)" src="https://github.com/user-attachments/assets/47d5d86a-7ec9-4cbd-8fdb-446381ec6b51" />
-

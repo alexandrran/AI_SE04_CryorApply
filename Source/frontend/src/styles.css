@@ -537,6 +537,35 @@ textarea {
   line-height: 1.65;
 }
 
+.score-delta {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 16px;
+  padding: 10px 12px;
+  border-radius: 999px;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.score-delta.positive {
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+}
+
+.score-delta.negative {
+  color: var(--low);
+  background: rgba(225, 29, 72, 0.08);
+}
+
+.score-delta strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.score-delta span {
+  color: currentColor;
+}
+
 .score-ring {
   position: relative;
   flex-shrink: 0;
@@ -745,6 +774,33 @@ textarea {
 .rewrite-item p span {
   font-weight: 600;
   color: var(--ink);
+}
+
+.apply-rewrite {
+  justify-self: start;
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  min-height: 36px;
+  margin-top: 4px;
+  border: 1px solid rgba(14, 147, 132, 0.25);
+  border-radius: 999px;
+  padding: 0 12px;
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.86rem;
+}
+
+.apply-rewrite:hover:not(:disabled) {
+  border-color: rgba(14, 147, 132, 0.55);
+  background: rgba(14, 147, 132, 0.16);
+}
+
+.apply-rewrite.is-applied {
+  color: #06120f;
+  background: var(--accent);
 }
 
 /* ---------- Responsive ---------- */

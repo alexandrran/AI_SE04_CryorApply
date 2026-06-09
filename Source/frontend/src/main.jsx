@@ -188,6 +188,9 @@ function App() {
   const [reviewResult, setReviewResult] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [isDragging, setIsDragging] = useState(false);
+  const [scoreDelta, setScoreDelta] = useState(null);
+  const [appliedRewriteKeys, setAppliedRewriteKeys] = useState([]);
+  const [applyingRewriteKey, setApplyingRewriteKey] = useState("");
 
   const activeIndex = step === "result" ? 2 : step === "role" || step === "analyzing" ? 1 : 0;
 
@@ -225,12 +228,13 @@ function App() {
     setStep("role");
   };
 
-  const runReview = async () => {
-    const pastedCvText = cvText.trim();
+  const runReview = async ({ cvTextOverride, source = "manual" } = {}) => {
+    const pastedCvText = (cvTextOverride ?? cvText).trim();
     const pastedJobDescription = jobDescription.trim();
+    const previousScore = reviewResult?.overall_score;
 
     const formData = new FormData();
-    if (selectedFile) {
+    if (selectedFile && !cvTextOverride) {
       formData.append("file", selectedFile);
     } else {
       formData.append("cv_text", pastedCvText);
@@ -255,11 +259,23 @@ function App() {
         );
       }
 
-      setReviewResult(await response.json());
+      const result = await response.json();
+      setReviewResult(result);
+      if (source === "rewrite" && typeof previousScore === "number") {
+        setScoreDelta({
+          before: previousScore,
+          after: result.overall_score,
+          change: result.overall_score - previousScore
+        });
+      } else {
+        setScoreDelta(null);
+      }
       setStep("result");
     } catch (error) {
       setErrorMessage(error.message);
       setStep("role");
+    } finally {
+      setApplyingRewriteKey("");
     }
   };
 
@@ -267,6 +283,31 @@ function App() {
     setStep("cv");
     setReviewResult(null);
     setErrorMessage("");
+    setScoreDelta(null);
+    setAppliedRewriteKeys([]);
+    setApplyingRewriteKey("");
+  };
+
+  const applyRewrite = async (item) => {
+    if (!cvText.trim()) {
+      setErrorMessage("Apply rewrites works with pasted CV text. Paste the CV text first, then run the review again.");
+      return;
+    }
+
+    const rewriteKey = `${item.section}-${item.before}-${item.after}`;
+    const updatedText = applyRewriteToCvText(cvText, item);
+
+    if (updatedText === cvText) {
+      setErrorMessage("Could not find a matching CV line to rewrite without changing the CV structure.");
+      return;
+    }
+
+    setErrorMessage("");
+    setApplyingRewriteKey(rewriteKey);
+    setAppliedRewriteKeys((keys) => Array.from(new Set([...keys, rewriteKey])));
+    setCvText(updatedText);
+    clearSelectedFile();
+    await runReview({ cvTextOverride: updatedText, source: "rewrite" });
   };
 
   const downloadReport = () => {
@@ -555,8 +596,29 @@ function App() {
 
               <div className="score-hero">
                 <ScoreRing value={reviewResult.overall_score} label="Overall" />
-                <p>{reviewResult.summary}</p>
+                <div>
+                  <p>{reviewResult.summary}</p>
+                  {scoreDelta ? (
+                    <motion.div
+                      className={`score-delta ${scoreDelta.change >= 0 ? "positive" : "negative"}`}
+                      initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ type: "spring", stiffness: 160, damping: 18 }}
+                    >
+                      <Sparkles size={16} />
+                      <strong>
+                        {scoreDelta.change >= 0 ? "+" : ""}
+                        {scoreDelta.change}
+                      </strong>
+                      <span>
+                        Re-scored from {scoreDelta.before} to {scoreDelta.after}
+                      </span>
+                    </motion.div>
+                  ) : null}
+                </div>
               </div>
+
+              <ErrorNote message={errorMessage} />
 
               <motion.div
                 className="feedback-grid"
@@ -659,10 +721,46 @@ function App() {
                     <div className="rewrite-list">
                       {reviewResult.rewrite_suggestions.map((item) => (
                         <div className="rewrite-item" key={`${item.section}-${item.before}`}>
+                          {(() => {
+                            const rewriteKey = `${item.section}-${item.before}-${item.after}`;
+                            const isApplied = appliedRewriteKeys.includes(rewriteKey);
+                            const isApplying = applyingRewriteKey === rewriteKey;
+                            const canApply = Boolean(cvText.trim());
+
+                            return (
+                              <>
                           <strong>{item.section}</strong>
                           <p><span>Before:</span> {item.before}</p>
                           <p><span>After:</span> {item.after}</p>
                           <small>{item.reason}</small>
+                                <button
+                                  className={`apply-rewrite ${isApplied ? "is-applied" : ""}`}
+                                  type="button"
+                                  onClick={() => applyRewrite(item)}
+                                  disabled={!canApply || Boolean(applyingRewriteKey)}
+                                  title={
+                                    canApply
+                                      ? "Apply this text rewrite and re-score the CV"
+                                      : "Apply rewrites requires pasted CV text"
+                                  }
+                                >
+                                  {isApplying ? (
+                                    <>
+                                      <Sparkles size={15} /> Re-scoring...
+                                    </>
+                                  ) : isApplied ? (
+                                    <>
+                                      <Check size={15} /> Applied
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Sparkles size={15} /> Apply + re-score
+                                    </>
+                                  )}
+                                </button>
+                              </>
+                            );
+                          })()}
                         </div>
                       ))}
                     </div>
@@ -675,6 +773,52 @@ function App() {
       </main>
     </div>
   );
+}
+
+function applyRewriteToCvText(cvText, rewrite) {
+  const before = rewrite.before?.trim();
+  const after = rewrite.after?.trim();
+
+  if (!before || !after) {
+    return cvText;
+  }
+
+  if (cvText.includes(before)) {
+    return cvText.replace(before, after);
+  }
+
+  const lines = cvText.split("\n");
+  const beforeTokens = tokenize(before);
+  let bestIndex = -1;
+  let bestScore = 0;
+
+  lines.forEach((line, index) => {
+    const lineTokens = tokenize(line);
+    if (lineTokens.length === 0) return;
+
+    const sharedTokens = beforeTokens.filter((token) => lineTokens.includes(token));
+    const score = sharedTokens.length / Math.max(beforeTokens.length, 1);
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestIndex = index;
+    }
+  });
+
+  if (bestIndex === -1 || bestScore < 0.35) {
+    return cvText;
+  }
+
+  const indentation = lines[bestIndex].match(/^\s*[-•*]?\s*/)?.[0] ?? "";
+  lines[bestIndex] = `${indentation}${after}`;
+  return lines.join("\n");
+}
+
+function tokenize(text) {
+  return text
+    .toLowerCase()
+    .match(/[a-z0-9+#.-]{3,}/g)
+    ?.filter((token) => !["the", "and", "with", "for", "that", "this", "your"].includes(token)) ?? [];
 }
 
 createRoot(document.getElementById("root")).render(<App />);
