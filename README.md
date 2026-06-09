@@ -50,6 +50,7 @@ Responsible for backend logic, PDF/DOCX text extraction, Supabase database and s
 | 9 June 2026 | Konstantin Shevtsov | Add Vercel serverless deployment: wrap FastAPI in a Python function, build frontend as static, route API via vercel.json |
 | 9 June 2026 | Konstantin Shevtsov | Redesign frontend into a step-by-step wizard (CV, target role, review) with framer-motion animations, animated score ring, skeleton loading, and a refreshed visual style |
 | 9 June 2026 | Alexandr An | Added apply rewrites and re-score flow: users can apply suggested CV text improvements, re-run the review, and see the score change without changing the CV structure |
+| 9 June 2026 | Konstantin Shevtsov | Added Rebuild CV feature: new POST /api/cv/rebuild endpoint restructures an uploaded PDF/DOCX or pasted CV into a clean ATS-friendly template (Gemini with rule-based fallback), with a live preview and downloadable PDF; documented in API.md |
 
 ## Deploy to Vercel (serverless)
 

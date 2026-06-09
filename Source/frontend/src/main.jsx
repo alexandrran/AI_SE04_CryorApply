@@ -16,6 +16,7 @@ import {
   Check,
   CheckCircle2,
   Download,
+  FileDown,
   FileText,
   Keyboard,
   ListChecks,
@@ -23,6 +24,7 @@ import {
   RotateCcw,
   Sparkles,
   UploadCloud,
+  Wand2,
   X
 } from "lucide-react";
 import "./styles.css";
@@ -191,8 +193,14 @@ function App() {
   const [scoreDelta, setScoreDelta] = useState(null);
   const [appliedRewriteKeys, setAppliedRewriteKeys] = useState([]);
   const [applyingRewriteKey, setApplyingRewriteKey] = useState("");
+  const [rebuiltCv, setRebuiltCv] = useState(null);
 
-  const activeIndex = step === "result" ? 2 : step === "role" || step === "analyzing" ? 1 : 0;
+  const activeIndex =
+    step === "result" || step === "rebuilding" || step === "rebuilt"
+      ? 2
+      : step === "role" || step === "analyzing"
+        ? 1
+        : 0;
 
   const openFilePicker = () => fileInputRef.current?.click();
 
@@ -286,6 +294,160 @@ function App() {
     setScoreDelta(null);
     setAppliedRewriteKeys([]);
     setApplyingRewriteKey("");
+    setRebuiltCv(null);
+  };
+
+  const rebuildCv = async () => {
+    const formData = new FormData();
+    if (selectedFile) {
+      formData.append("file", selectedFile);
+    } else {
+      formData.append("cv_text", cvText.trim());
+    }
+    if (jobDescription.trim()) {
+      formData.append("job_description", jobDescription.trim());
+    }
+
+    setErrorMessage("");
+    setStep("rebuilding");
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/cv/rebuild`, {
+        method: "POST",
+        body: formData
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => null);
+        throw new Error(
+          error?.detail ?? "Could not rebuild the CV. Check that the backend is running."
+        );
+      }
+
+      setRebuiltCv(await response.json());
+      setStep("rebuilt");
+    } catch (error) {
+      setErrorMessage(error.message);
+      setStep("result");
+    }
+  };
+
+  const downloadRebuiltCv = () => {
+    if (!rebuiltCv) return;
+    const doc = new jsPDF({ unit: "pt", format: "a4" });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const margin = 48;
+    const maxW = pageW - margin * 2;
+    let y = margin;
+
+    const ensure = (height) => {
+      if (y + height > pageH - margin) {
+        doc.addPage();
+        y = margin;
+      }
+    };
+
+    const write = (text, options = {}) => {
+      if (!text) return;
+      const { size = 10, style = "normal", color = [38, 38, 42], gap = 14, indent = 0 } = options;
+      doc.setFont("helvetica", style);
+      doc.setFontSize(size);
+      doc.setTextColor(color[0], color[1], color[2]);
+      doc.splitTextToSize(String(text), maxW - indent).forEach((row) => {
+        ensure(gap);
+        doc.text(row, margin + indent, y);
+        y += gap;
+      });
+    };
+
+    const heading = (text) => {
+      y += 8;
+      ensure(22);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(14, 147, 132);
+      doc.text(text.toUpperCase(), margin, y);
+      y += 5;
+      doc.setDrawColor(14, 147, 132);
+      doc.setLineWidth(0.8);
+      doc.line(margin, y, pageW - margin, y);
+      y += 12;
+    };
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.setTextColor(20, 20, 25);
+    ensure(26);
+    doc.text(rebuiltCv.full_name || "Your Name", margin, y);
+    y += 22;
+    if (rebuiltCv.headline) write(rebuiltCv.headline, { size: 12, color: [82, 82, 91], gap: 16 });
+
+    const contact = rebuiltCv.contact || {};
+    const contactBits = [contact.email, contact.phone, contact.location, ...(contact.links || [])].filter(Boolean);
+    if (contactBits.length) write(contactBits.join("   -   "), { size: 9, color: [113, 113, 122], gap: 14 });
+
+    if (rebuiltCv.summary) {
+      heading("Summary");
+      write(rebuiltCv.summary, { gap: 13 });
+    }
+    if (rebuiltCv.skills?.length) {
+      heading("Skills");
+      write(rebuiltCv.skills.join(",  "), { gap: 13 });
+    }
+    if (rebuiltCv.experience?.length) {
+      heading("Experience");
+      rebuiltCv.experience.forEach((entry) => {
+        write([entry.title, entry.organization].filter(Boolean).join(" - "), { size: 10.5, style: "bold", gap: 14 });
+        if (entry.period) write(entry.period, { size: 9, color: [120, 120, 130], gap: 12 });
+        (entry.bullets || []).forEach((bullet) => write(`-  ${bullet}`, { gap: 13, indent: 8 }));
+        y += 4;
+      });
+    }
+    if (rebuiltCv.education?.length) {
+      heading("Education");
+      rebuiltCv.education.forEach((entry) => {
+        write([entry.program, entry.school].filter(Boolean).join(" - "), { size: 10.5, style: "bold", gap: 14 });
+        if (entry.period) write(entry.period, { size: 9, color: [120, 120, 130], gap: 12 });
+        if (entry.details) write(entry.details, { gap: 13 });
+        y += 4;
+      });
+    }
+    if (rebuiltCv.projects?.length) {
+      heading("Projects");
+      rebuiltCv.projects.forEach((entry) => {
+        write(entry.name, { size: 10.5, style: "bold", gap: 14 });
+        (entry.bullets || []).forEach((bullet) => write(`-  ${bullet}`, { gap: 13, indent: 8 }));
+        y += 4;
+      });
+    }
+    if (rebuiltCv.languages?.length) {
+      heading("Languages");
+      write(rebuiltCv.languages.join(",  "), { gap: 13 });
+    }
+    if (rebuiltCv.certifications?.length) {
+      heading("Certifications");
+      rebuiltCv.certifications.forEach((cert) => write(`-  ${cert}`, { gap: 13, indent: 8 }));
+    }
+
+    try {
+      const pdfBlob = doc.output("blob");
+      const url = URL.createObjectURL(pdfBlob);
+      const link = document.createElement("a");
+      const safeName = (rebuiltCv.full_name || "cv")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+      link.href = url;
+      link.download = `${safeName || "cryorapply"}-cv.pdf`;
+      link.rel = "noopener";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      setErrorMessage("Could not create the CV PDF in this browser.");
+    }
   };
 
   const applyRewrite = async (item) => {
@@ -588,8 +750,11 @@ function App() {
                   <button className="ghost" type="button" onClick={startOver}>
                     <RotateCcw size={16} /> Start over
                   </button>
-                  <button className="primary" type="button" onClick={downloadReport}>
-                    <Download size={16} /> PDF report
+                  <button className="ghost" type="button" onClick={downloadReport}>
+                    <Download size={16} /> Review report
+                  </button>
+                  <button className="primary" type="button" onClick={rebuildCv}>
+                    <Wand2 size={16} /> Rebuild my CV
                   </button>
                 </div>
               </header>
@@ -769,8 +934,198 @@ function App() {
               </div>
             </motion.section>
           ) : null}
+
+          {step === "rebuilding" ? (
+            <motion.section
+              key="rebuilding"
+              className="panel"
+              variants={panelVariants}
+              initial="initial"
+              animate="enter"
+              exit="exit"
+              transition={{ duration: 0.4, ease: EASE }}
+            >
+              <header className="panel-head">
+                <p className="eyebrow">
+                  <motion.span
+                    className="dot-live"
+                    animate={{ opacity: [1, 0.3, 1] }}
+                    transition={{ duration: 1.4, repeat: Infinity }}
+                  />
+                  Rebuilding
+                </p>
+                <h1>Rewriting your CV</h1>
+                <p className="lead">
+                  Restructuring your content into a clean, ATS-friendly template.
+                </p>
+              </header>
+              <div className="skeleton doc" />
+            </motion.section>
+          ) : null}
+
+          {step === "rebuilt" && rebuiltCv ? (
+            <motion.section
+              key="rebuilt"
+              className="panel result"
+              variants={panelVariants}
+              initial="initial"
+              animate="enter"
+              exit="exit"
+              transition={{ duration: 0.4, ease: EASE }}
+            >
+              <header className="result-head">
+                <div>
+                  <p className="eyebrow">
+                    <Wand2 size={14} /> Rebuilt with CryorApply
+                  </p>
+                  <h1>Your new CV</h1>
+                </div>
+                <div className="result-head-actions">
+                  <button className="ghost" type="button" onClick={() => setStep("result")}>
+                    <ArrowLeft size={16} /> Back to review
+                  </button>
+                  <button className="primary" type="button" onClick={downloadRebuiltCv}>
+                    <FileDown size={16} /> Download CV (PDF)
+                  </button>
+                </div>
+              </header>
+
+              <ErrorNote message={errorMessage} />
+
+              {rebuiltCv.notes?.length ? (
+                <div className="cv-notes">
+                  <strong>Before you send it</strong>
+                  <ul>
+                    {rebuiltCv.notes.map((note, index) => (
+                      <li key={index}>{note}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              <motion.div
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: EASE }}
+              >
+                <CvDocument cv={rebuiltCv} />
+              </motion.div>
+            </motion.section>
+          ) : null}
         </AnimatePresence>
       </main>
+    </div>
+  );
+}
+
+function CvDocument({ cv }) {
+  const contact = cv.contact || {};
+  const contactBits = [
+    contact.email,
+    contact.phone,
+    contact.location,
+    ...(contact.links || [])
+  ].filter(Boolean);
+
+  return (
+    <div className="cv-doc">
+      <header className="cv-doc-head">
+        <h2>{cv.full_name || "Your Name"}</h2>
+        {cv.headline ? <p className="cv-headline">{cv.headline}</p> : null}
+        {contactBits.length ? <p className="cv-contact">{contactBits.join("   •   ")}</p> : null}
+      </header>
+
+      {cv.summary ? (
+        <section className="cv-section">
+          <h3>Summary</h3>
+          <p>{cv.summary}</p>
+        </section>
+      ) : null}
+
+      {cv.skills?.length ? (
+        <section className="cv-section">
+          <h3>Skills</h3>
+          <div className="cv-chips">
+            {cv.skills.map((skill) => (
+              <span key={skill}>{skill}</span>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {cv.experience?.length ? (
+        <section className="cv-section">
+          <h3>Experience</h3>
+          {cv.experience.map((entry, index) => (
+            <div className="cv-entry" key={`${entry.title}-${index}`}>
+              <div className="cv-entry-head">
+                <strong>{[entry.title, entry.organization].filter(Boolean).join(" — ")}</strong>
+                {entry.period ? <span>{entry.period}</span> : null}
+              </div>
+              {entry.bullets?.length ? (
+                <ul>
+                  {entry.bullets.map((bullet, bulletIndex) => (
+                    <li key={bulletIndex}>{bullet}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          ))}
+        </section>
+      ) : null}
+
+      {cv.education?.length ? (
+        <section className="cv-section">
+          <h3>Education</h3>
+          {cv.education.map((entry, index) => (
+            <div className="cv-entry" key={`${entry.school}-${index}`}>
+              <div className="cv-entry-head">
+                <strong>{[entry.program, entry.school].filter(Boolean).join(" — ")}</strong>
+                {entry.period ? <span>{entry.period}</span> : null}
+              </div>
+              {entry.details ? <p>{entry.details}</p> : null}
+            </div>
+          ))}
+        </section>
+      ) : null}
+
+      {cv.projects?.length ? (
+        <section className="cv-section">
+          <h3>Projects</h3>
+          {cv.projects.map((entry, index) => (
+            <div className="cv-entry" key={`${entry.name}-${index}`}>
+              <div className="cv-entry-head">
+                <strong>{entry.name}</strong>
+              </div>
+              {entry.bullets?.length ? (
+                <ul>
+                  {entry.bullets.map((bullet, bulletIndex) => (
+                    <li key={bulletIndex}>{bullet}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          ))}
+        </section>
+      ) : null}
+
+      {cv.languages?.length ? (
+        <section className="cv-section">
+          <h3>Languages</h3>
+          <p>{cv.languages.join(", ")}</p>
+        </section>
+      ) : null}
+
+      {cv.certifications?.length ? (
+        <section className="cv-section">
+          <h3>Certifications</h3>
+          <ul>
+            {cv.certifications.map((cert, index) => (
+              <li key={index}>{cert}</li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </div>
   );
 }

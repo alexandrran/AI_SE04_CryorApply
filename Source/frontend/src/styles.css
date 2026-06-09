@@ -803,6 +803,152 @@ textarea {
   background: var(--accent);
 }
 
+/* ---------- Rebuilt CV document ---------- */
+.skeleton.doc {
+  height: 520px;
+  border-radius: var(--radius);
+}
+
+.cv-notes {
+  display: grid;
+  gap: 8px;
+  padding: 16px 18px;
+  border: 1px solid rgba(217, 119, 6, 0.28);
+  border-radius: 16px;
+  background: rgba(217, 119, 6, 0.07);
+}
+
+.cv-notes strong {
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mid);
+}
+
+.cv-notes ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.cv-doc {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: clamp(28px, 5vw, 52px);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+}
+
+.cv-doc-head {
+  padding-bottom: 16px;
+  margin-bottom: 8px;
+  border-bottom: 2px solid var(--accent);
+}
+
+.cv-doc-head h2 {
+  margin: 0;
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.cv-headline {
+  margin: 4px 0 0;
+  color: var(--accent-ink);
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.cv-contact {
+  margin: 10px 0 0;
+  color: var(--ink-faint);
+  font-size: 0.88rem;
+}
+
+.cv-section {
+  margin-top: 22px;
+}
+
+.cv-section h3 {
+  margin: 0 0 10px;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+
+.cv-section > p {
+  margin: 0;
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+
+.cv-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cv-chips span {
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.cv-entry {
+  margin-bottom: 14px;
+}
+
+.cv-entry:last-child {
+  margin-bottom: 0;
+}
+
+.cv-entry-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: baseline;
+}
+
+.cv-entry-head strong {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.cv-entry-head span {
+  flex-shrink: 0;
+  color: var(--ink-faint);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.cv-entry ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  color: var(--ink-soft);
+  line-height: 1.55;
+  font-size: 0.94rem;
+}
+
+.cv-entry ul li {
+  margin-bottom: 4px;
+}
+
+.cv-entry > p {
+  margin: 4px 0 0;
+  color: var(--ink-soft);
+  line-height: 1.55;
+  font-size: 0.94rem;
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 920px) {
   .shell {
