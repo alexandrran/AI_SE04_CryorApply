@@ -8,6 +8,7 @@ import {
   useTransform
 } from "framer-motion";
 import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
 import {
   ArrowLeft,
   ArrowRight,
@@ -18,6 +19,7 @@ import {
   Download,
   FileDown,
   FileText,
+  HelpCircle,
   Keyboard,
   ListChecks,
   PenLine,
@@ -194,13 +196,15 @@ function App() {
   const [appliedRewriteKeys, setAppliedRewriteKeys] = useState([]);
   const [applyingRewriteKey, setApplyingRewriteKey] = useState("");
   const [rebuiltCv, setRebuiltCv] = useState(null);
+  const [cvQuestions, setCvQuestions] = useState([]);
+  const [questionAnswers, setQuestionAnswers] = useState({});
+  const cvDocRef = useRef(null);
 
-  const activeIndex =
-    step === "result" || step === "rebuilding" || step === "rebuilt"
-      ? 2
-      : step === "role" || step === "analyzing"
-        ? 1
-        : 0;
+  const activeIndex = ["result", "questioning", "questions", "rebuilding", "rebuilt"].includes(step)
+    ? 2
+    : step === "role" || step === "analyzing"
+      ? 1
+      : 0;
 
   const openFilePicker = () => fileInputRef.current?.click();
 
@@ -295,10 +299,11 @@ function App() {
     setAppliedRewriteKeys([]);
     setApplyingRewriteKey("");
     setRebuiltCv(null);
+    setCvQuestions([]);
+    setQuestionAnswers({});
   };
 
-  const rebuildCv = async () => {
-    const formData = new FormData();
+  const appendCvInput = (formData) => {
     if (selectedFile) {
       formData.append("file", selectedFile);
     } else {
@@ -306,6 +311,46 @@ function App() {
     }
     if (jobDescription.trim()) {
       formData.append("job_description", jobDescription.trim());
+    }
+    return formData;
+  };
+
+  const loadQuestions = async () => {
+    setErrorMessage("");
+    setStep("questioning");
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/cv/questions`, {
+        method: "POST",
+        body: appendCvInput(new FormData())
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => null);
+        throw new Error(error?.detail ?? "Could not prepare questions for this CV.");
+      }
+
+      const data = await response.json();
+      setCvQuestions(data.questions ?? []);
+      setQuestionAnswers({});
+      setStep("questions");
+    } catch (error) {
+      setErrorMessage(error.message);
+      setStep("result");
+    }
+  };
+
+  const rebuildCv = async () => {
+    const answers = cvQuestions
+      .map((question) => ({
+        question: question.question,
+        answer: (questionAnswers[question.id] ?? "").trim()
+      }))
+      .filter((entry) => entry.answer);
+
+    const formData = appendCvInput(new FormData());
+    if (answers.length) {
+      formData.append("answers", JSON.stringify(answers));
     }
 
     setErrorMessage("");
@@ -328,123 +373,53 @@ function App() {
       setStep("rebuilt");
     } catch (error) {
       setErrorMessage(error.message);
-      setStep("result");
+      setStep("questions");
     }
   };
 
-  const downloadRebuiltCv = () => {
-    if (!rebuiltCv) return;
-    const doc = new jsPDF({ unit: "pt", format: "a4" });
-    const pageW = doc.internal.pageSize.getWidth();
-    const pageH = doc.internal.pageSize.getHeight();
-    const margin = 48;
-    const maxW = pageW - margin * 2;
-    let y = margin;
-
-    const ensure = (height) => {
-      if (y + height > pageH - margin) {
-        doc.addPage();
-        y = margin;
-      }
-    };
-
-    const write = (text, options = {}) => {
-      if (!text) return;
-      const { size = 10, style = "normal", color = [38, 38, 42], gap = 14, indent = 0 } = options;
-      doc.setFont("helvetica", style);
-      doc.setFontSize(size);
-      doc.setTextColor(color[0], color[1], color[2]);
-      doc.splitTextToSize(String(text), maxW - indent).forEach((row) => {
-        ensure(gap);
-        doc.text(row, margin + indent, y);
-        y += gap;
-      });
-    };
-
-    const heading = (text) => {
-      y += 8;
-      ensure(22);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(11);
-      doc.setTextColor(14, 147, 132);
-      doc.text(text.toUpperCase(), margin, y);
-      y += 5;
-      doc.setDrawColor(14, 147, 132);
-      doc.setLineWidth(0.8);
-      doc.line(margin, y, pageW - margin, y);
-      y += 12;
-    };
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(22);
-    doc.setTextColor(20, 20, 25);
-    ensure(26);
-    doc.text(rebuiltCv.full_name || "Your Name", margin, y);
-    y += 22;
-    if (rebuiltCv.headline) write(rebuiltCv.headline, { size: 12, color: [82, 82, 91], gap: 16 });
-
-    const contact = rebuiltCv.contact || {};
-    const contactBits = [contact.email, contact.phone, contact.location, ...(contact.links || [])].filter(Boolean);
-    if (contactBits.length) write(contactBits.join("   -   "), { size: 9, color: [113, 113, 122], gap: 14 });
-
-    if (rebuiltCv.summary) {
-      heading("Summary");
-      write(rebuiltCv.summary, { gap: 13 });
-    }
-    if (rebuiltCv.skills?.length) {
-      heading("Skills");
-      write(rebuiltCv.skills.join(",  "), { gap: 13 });
-    }
-    if (rebuiltCv.experience?.length) {
-      heading("Experience");
-      rebuiltCv.experience.forEach((entry) => {
-        write([entry.title, entry.organization].filter(Boolean).join(" - "), { size: 10.5, style: "bold", gap: 14 });
-        if (entry.period) write(entry.period, { size: 9, color: [120, 120, 130], gap: 12 });
-        (entry.bullets || []).forEach((bullet) => write(`-  ${bullet}`, { gap: 13, indent: 8 }));
-        y += 4;
-      });
-    }
-    if (rebuiltCv.education?.length) {
-      heading("Education");
-      rebuiltCv.education.forEach((entry) => {
-        write([entry.program, entry.school].filter(Boolean).join(" - "), { size: 10.5, style: "bold", gap: 14 });
-        if (entry.period) write(entry.period, { size: 9, color: [120, 120, 130], gap: 12 });
-        if (entry.details) write(entry.details, { gap: 13 });
-        y += 4;
-      });
-    }
-    if (rebuiltCv.projects?.length) {
-      heading("Projects");
-      rebuiltCv.projects.forEach((entry) => {
-        write(entry.name, { size: 10.5, style: "bold", gap: 14 });
-        (entry.bullets || []).forEach((bullet) => write(`-  ${bullet}`, { gap: 13, indent: 8 }));
-        y += 4;
-      });
-    }
-    if (rebuiltCv.languages?.length) {
-      heading("Languages");
-      write(rebuiltCv.languages.join(",  "), { gap: 13 });
-    }
-    if (rebuiltCv.certifications?.length) {
-      heading("Certifications");
-      rebuiltCv.certifications.forEach((cert) => write(`-  ${cert}`, { gap: 13, indent: 8 }));
-    }
+  // Pixel-perfect export: rasterize the exact preview node the user sees, then
+  // paginate it across A4 pages so the PDF matches the web 1:1.
+  const downloadRebuiltCv = async () => {
+    const node = cvDocRef.current;
+    if (!node || !rebuiltCv) return;
 
     try {
-      const pdfBlob = doc.output("blob");
-      const url = URL.createObjectURL(pdfBlob);
-      const link = document.createElement("a");
+      if (document.fonts?.ready) {
+        await document.fonts.ready;
+      }
+
+      const canvas = await html2canvas(node, {
+        scale: 2,
+        backgroundColor: "#ffffff",
+        useCORS: true,
+        logging: false
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({ unit: "pt", format: "a4" });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const imgW = pageW;
+      const imgH = (canvas.height * imgW) / canvas.width;
+
+      let position = 0;
+      let heightLeft = imgH;
+
+      pdf.addImage(imgData, "PNG", 0, position, imgW, imgH);
+      heightLeft -= pageH;
+
+      while (heightLeft > 0) {
+        position -= pageH;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, imgW, imgH);
+        heightLeft -= pageH;
+      }
+
       const safeName = (rebuiltCv.full_name || "cv")
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-|-$/g, "");
-      link.href = url;
-      link.download = `${safeName || "cryorapply"}-cv.pdf`;
-      link.rel = "noopener";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      pdf.save(`${safeName || "cryorapply"}-cv.pdf`);
     } catch (error) {
       setErrorMessage("Could not create the CV PDF in this browser.");
     }
@@ -753,7 +728,7 @@ function App() {
                   <button className="ghost" type="button" onClick={downloadReport}>
                     <Download size={16} /> Review report
                   </button>
-                  <button className="primary" type="button" onClick={rebuildCv}>
+                  <button className="primary" type="button" onClick={loadQuestions}>
                     <Wand2 size={16} /> Rebuild my CV
                   </button>
                 </div>
@@ -935,6 +910,99 @@ function App() {
             </motion.section>
           ) : null}
 
+          {step === "questioning" ? (
+            <motion.section
+              key="questioning"
+              className="panel"
+              variants={panelVariants}
+              initial="initial"
+              animate="enter"
+              exit="exit"
+              transition={{ duration: 0.4, ease: EASE }}
+            >
+              <header className="panel-head">
+                <p className="eyebrow">
+                  <motion.span
+                    className="dot-live"
+                    animate={{ opacity: [1, 0.3, 1] }}
+                    transition={{ duration: 1.4, repeat: Infinity }}
+                  />
+                  Preparing
+                </p>
+                <h1>Finding what to improve</h1>
+                <p className="lead">
+                  Reading your CV to ask a few targeted questions before the rebuild.
+                </p>
+              </header>
+              <div className="question-skeletons">
+                {[0, 1, 2].map((index) => (
+                  <div className="skeleton question" key={index} />
+                ))}
+              </div>
+            </motion.section>
+          ) : null}
+
+          {step === "questions" ? (
+            <motion.section
+              key="questions"
+              className="panel"
+              variants={panelVariants}
+              initial="initial"
+              animate="enter"
+              exit="exit"
+              transition={{ duration: 0.4, ease: EASE }}
+            >
+              <header className="panel-head">
+                <p className="eyebrow">
+                  <HelpCircle size={14} /> A few questions
+                </p>
+                <h1>Make it stronger</h1>
+                <p className="lead">
+                  Answer what you can based on your CV. Skip anything that does not
+                  apply. Your answers are woven into the rebuilt CV.
+                </p>
+              </header>
+
+              <motion.div
+                className="question-list"
+                variants={listContainer}
+                initial="initial"
+                animate="enter"
+              >
+                {cvQuestions.map((question) => (
+                  <motion.label className="question-item" key={question.id} variants={listItem}>
+                    <span className="question-text">{question.question}</span>
+                    {question.reason ? (
+                      <span className="question-reason">{question.reason}</span>
+                    ) : null}
+                    <textarea
+                      value={questionAnswers[question.id] ?? ""}
+                      onChange={(event) =>
+                        setQuestionAnswers((answers) => ({
+                          ...answers,
+                          [question.id]: event.target.value
+                        }))
+                      }
+                      placeholder={question.placeholder || "Your answer (optional)"}
+                      rows={2}
+                    />
+                  </motion.label>
+                ))}
+              </motion.div>
+
+              <ErrorNote message={errorMessage} />
+
+              <div className="panel-actions between">
+                <button className="ghost" type="button" onClick={() => setStep("result")}>
+                  <ArrowLeft size={18} /> Back
+                </button>
+                <button className="primary" type="button" onClick={rebuildCv}>
+                  <Wand2 size={18} /> Rebuild my CV
+                </button>
+              </div>
+            </motion.section>
+          ) : null}
+
           {step === "rebuilding" ? (
             <motion.section
               key="rebuilding"
@@ -1008,7 +1076,7 @@ function App() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, ease: EASE }}
               >
-                <CvDocument cv={rebuiltCv} />
+                <CvDocument cv={rebuiltCv} ref={cvDocRef} />
               </motion.div>
             </motion.section>
           ) : null}
@@ -1018,7 +1086,7 @@ function App() {
   );
 }
 
-function CvDocument({ cv }) {
+const CvDocument = React.forwardRef(function CvDocument({ cv }, ref) {
   const contact = cv.contact || {};
   const contactBits = [
     contact.email,
@@ -1028,7 +1096,7 @@ function CvDocument({ cv }) {
   ].filter(Boolean);
 
   return (
-    <div className="cv-doc">
+    <div className="cv-doc" ref={ref}>
       <header className="cv-doc-head">
         <h2>{cv.full_name || "Your Name"}</h2>
         {cv.headline ? <p className="cv-headline">{cv.headline}</p> : null}
@@ -1128,7 +1196,7 @@ function CvDocument({ cv }) {
       ) : null}
     </div>
   );
-}
+});
 
 function applyRewriteToCvText(cvText, rewrite) {
   const before = rewrite.before?.trim();

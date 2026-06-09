@@ -11,6 +11,8 @@ import re
 from app.schemas import (
     CvContact,
     CvExperienceEntry,
+    CvQuestion,
+    CvQuestionsResponse,
     StructuredCv,
 )
 from app.services.cv_analyzer import TECHNICAL_KEYWORDS
@@ -80,3 +82,82 @@ def rebuild_cv_text(
             "Add a GEMINI_API_KEY to rewrite the wording and detect sections automatically.",
         ],
     )
+
+
+def generate_cv_questions(
+    filename: str,
+    cv_text: str,
+    job_description: str | None = None,
+) -> CvQuestionsResponse:
+    """Rule-based follow-up questions based on gaps detected in the CV."""
+    lower = cv_text.lower()
+    has_link = bool(URL_RE.search(cv_text))
+    has_numbers = bool(re.search(r"\d+%?\b", cv_text))
+
+    questions: list[CvQuestion] = []
+
+    if "linkedin" not in lower:
+        questions.append(
+            CvQuestion(
+                id="linkedin",
+                question="What is your LinkedIn profile URL?",
+                reason="A LinkedIn link lets recruiters verify and contact you quickly.",
+                placeholder="linkedin.com/in/your-name",
+            )
+        )
+    if "github" not in lower:
+        questions.append(
+            CvQuestion(
+                id="github",
+                question="Do you have a GitHub profile? Paste the link if so.",
+                reason="For technical roles, GitHub shows your real code and projects.",
+                placeholder="github.com/yourname",
+            )
+        )
+    if not has_link:
+        questions.append(
+            CvQuestion(
+                id="portfolio",
+                question="Do you have a portfolio website or live project links?",
+                reason="Live links let employers see your work directly.",
+                placeholder="myportfolio.com",
+            )
+        )
+    if not has_numbers:
+        questions.append(
+            CvQuestion(
+                id="metrics",
+                question="Can you add numbers to one of your achievements?",
+                reason="Quantified results (users, %, time saved) make a CV far stronger.",
+                placeholder="e.g. built a tool used by 200+ students",
+            )
+        )
+    if not any(keyword in lower for keyword in ("project", "portfolio")):
+        questions.append(
+            CvQuestion(
+                id="projects",
+                question="Describe one project you are proud of: what you built and which tools you used.",
+                reason="A strong project section makes up for limited work experience.",
+                placeholder="e.g. a React weather app using a public API",
+            )
+        )
+    if not any(keyword in lower for keyword in ("experience", "internship", "work")):
+        questions.append(
+            CvQuestion(
+                id="experience",
+                question="Any internships, part-time jobs, volunteering, or team roles to add?",
+                reason="Even non-technical experience shows responsibility and teamwork.",
+                placeholder="e.g. volunteered organizing a student event",
+            )
+        )
+
+    questions.append(
+        CvQuestion(
+            id="target",
+            question="What role or internship are you targeting next?",
+            reason="Tailoring the CV to a specific role makes it much stronger.",
+            placeholder="e.g. Junior Frontend Developer",
+        )
+    )
+
+    return CvQuestionsResponse(filename=filename, questions=questions[:6])

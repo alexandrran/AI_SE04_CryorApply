@@ -59,6 +59,18 @@ class CvProjectEntry(BaseModel):
     bullets: list[str] = Field(default_factory=list)
 
 
+class CvQuestion(BaseModel):
+    id: str
+    question: str
+    reason: str = ""
+    placeholder: str = ""
+
+
+class CvQuestionsResponse(BaseModel):
+    filename: str
+    questions: list[CvQuestion] = Field(default_factory=list)
+
+
 class StructuredCv(BaseModel):
     """A cleaned, re-templated CV produced from the user's original CV."""
 

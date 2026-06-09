@@ -949,6 +949,62 @@ textarea {
   font-size: 0.94rem;
 }
 
+/* ---------- Tailored questions ---------- */
+.question-skeletons {
+  display: grid;
+  gap: 14px;
+}
+
+.skeleton.question {
+  height: 92px;
+  border-radius: 16px;
+}
+
+.question-list {
+  display: grid;
+  gap: 16px;
+}
+
+.question-item {
+  display: grid;
+  gap: 6px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.question-text {
+  font-weight: 600;
+  font-size: 0.98rem;
+  color: var(--ink);
+}
+
+.question-reason {
+  font-size: 0.85rem;
+  color: var(--ink-faint);
+  line-height: 1.45;
+}
+
+.question-item textarea {
+  width: 100%;
+  margin-top: 4px;
+  resize: vertical;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  padding: 10px 12px;
+  color: var(--ink);
+  background: var(--bg);
+  line-height: 1.5;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.question-item textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 920px) {
   .shell {

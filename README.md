@@ -51,6 +51,7 @@ Responsible for backend logic, PDF/DOCX text extraction, Supabase database and s
 | 9 June 2026 | Konstantin Shevtsov | Redesign frontend into a step-by-step wizard (CV, target role, review) with framer-motion animations, animated score ring, skeleton loading, and a refreshed visual style |
 | 9 June 2026 | Alexandr An | Added apply rewrites and re-score flow: users can apply suggested CV text improvements, re-run the review, and see the score change without changing the CV structure |
 | 9 June 2026 | Konstantin Shevtsov | Added Rebuild CV feature: new POST /api/cv/rebuild endpoint restructures an uploaded PDF/DOCX or pasted CV into a clean ATS-friendly template (Gemini with rule-based fallback), with a live preview and downloadable PDF; documented in API.md |
+| 9 June 2026 | Konstantin Shevtsov | Made Rebuild CV interactive and Harvard-based: new POST /api/cv/questions generates CV-specific follow-up questions whose answers feed the rebuild; rewriting now follows Harvard Career Services resume rules; PDF export is pixel-perfect to the on-screen preview via html2canvas; added diagnostics endpoint and error logging for the Gemini fallback |
 
 ## Deploy to Vercel (serverless)
 
