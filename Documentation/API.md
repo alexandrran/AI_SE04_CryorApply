@@ -33,15 +33,19 @@ Form fields:
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `file` | `PDF` or `DOCX` file | Yes | CV uploaded by the user. Maximum size: 10 MB |
+| `file` | `PDF` or `DOCX` file | No | CV uploaded by the user. Maximum size: 10 MB |
+| `cv_text` | `string` | No | CV text pasted by the user. Required when no file is uploaded |
+| `job_description` | `string` | No | Target role or internship description for job matching |
 
 Processing:
 
 1. Backend validates file name, type, and size.
 2. PDF text is extracted with `pypdf`.
 3. DOCX text is extracted with `python-docx`.
-4. Extracted text is analyzed with rule-based prototype logic.
-5. The response is returned as structured JSON for the frontend.
+4. Extracted text is sent to Gemini when `GEMINI_API_KEY` is configured.
+5. Gemini returns structured AI feedback, job matching, priority fixes, and rewrite suggestions.
+6. If Gemini is unavailable or no API key is configured, the rule-based analyzer is used as a fallback.
+7. The response is returned as structured JSON for the frontend.
 
 Response:
 
@@ -63,7 +67,24 @@ Response:
   "next_steps": [
     "Add projects with technologies used, your role, and outcomes.",
     "Compare the CV with a target job description and add missing keywords."
-  ]
+  ],
+  "priority_fixes": [
+    "Add missing job keywords where they honestly match your skills."
+  ],
+  "rewrite_suggestions": [
+    {
+      "section": "Projects",
+      "before": "Worked on a student project.",
+      "after": "Built a React and FastAPI web application with CV upload and AI feedback.",
+      "reason": "The rewritten version shows technologies and outcome."
+    }
+  ],
+  "job_match": {
+    "match_score": 72,
+    "strong_matches": ["react", "api"],
+    "missing_keywords": ["typescript", "testing"],
+    "recommendation": "Add missing role keywords and connect them to projects."
+  }
 }
 ```
 
@@ -71,7 +92,13 @@ Response:
 
 | Status | Reason |
 |---|---|
-| `400` | Missing file or unsupported file type |
+| `400` | Missing CV input or unsupported file type |
 | `413` | File is too large |
 | `422` | CV text could not be extracted |
 | `500` | Unexpected server error |
+
+## AI Provider
+
+The backend supports Gemini API integration through the `GEMINI_API_KEY`
+environment variable. The default model is `gemini-2.5-flash`, and it can be
+changed with `GEMINI_MODEL`.

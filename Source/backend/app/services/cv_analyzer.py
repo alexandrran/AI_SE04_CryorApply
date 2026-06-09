@@ -1,6 +1,6 @@
 import re
 
-from app.schemas import CvReviewResponse, FeedbackItem
+from app.schemas import CvReviewResponse, FeedbackItem, JobMatch, RewriteSuggestion
 
 SECTION_KEYWORDS = {
     "education": ["education", "degree", "university", "college", "school"],
@@ -37,8 +37,30 @@ ACTION_VERBS = [
     "collaborated",
 ]
 
+STOP_WORDS = {
+    "about",
+    "with",
+    "from",
+    "this",
+    "that",
+    "will",
+    "your",
+    "have",
+    "using",
+    "work",
+    "role",
+    "team",
+    "candidate",
+    "experience",
+    "skills",
+}
 
-def analyze_cv_text(filename: str, cv_text: str) -> CvReviewResponse:
+
+def analyze_cv_text(
+    filename: str,
+    cv_text: str,
+    job_description: str | None = None,
+) -> CvReviewResponse:
     """Rule-based CV review until the AI provider integration is added."""
     normalized_text = cv_text.lower()
     word_count = len(re.findall(r"\b\w+\b", normalized_text))
@@ -82,6 +104,13 @@ def analyze_cv_text(filename: str, cv_text: str) -> CvReviewResponse:
     overall_score = round(
         (structure_score + skills_score + experience_score + formatting_score) / 4
     )
+    job_match = build_job_match(normalized_text, job_description or "")
+    priority_fixes = build_priority_fixes(
+        sections,
+        found_keywords,
+        measurable_result_count,
+        job_match,
+    )
 
     return CvReviewResponse(
         filename=filename,
@@ -118,6 +147,9 @@ def analyze_cv_text(filename: str, cv_text: str) -> CvReviewResponse:
             ),
         ],
         next_steps=build_next_steps(sections, found_keywords, measurable_result_count),
+        priority_fixes=priority_fixes,
+        rewrite_suggestions=build_rewrite_suggestions(sections, found_keywords),
+        job_match=job_match,
     )
 
 
@@ -263,3 +295,126 @@ def build_next_steps(
         next_steps.append("Tailor this CV to one specific internship or junior role before applying.")
 
     return next_steps
+
+
+def build_job_match(cv_text: str, job_description: str) -> JobMatch:
+    if not job_description.strip():
+        return JobMatch(
+            match_score=0,
+            strong_matches=[],
+            missing_keywords=[],
+            recommendation="Add a target job description to calculate a CV-to-role match score.",
+        )
+
+    job_keywords = extract_keywords(job_description)
+    if not job_keywords:
+        return JobMatch(
+            match_score=0,
+            strong_matches=[],
+            missing_keywords=[],
+            recommendation="The job description is too short to calculate a reliable match score.",
+        )
+
+    strong_matches = [keyword for keyword in job_keywords if keyword in cv_text]
+    missing_keywords = [keyword for keyword in job_keywords if keyword not in cv_text]
+    match_score = round((len(strong_matches) / len(job_keywords)) * 100)
+
+    return JobMatch(
+        match_score=match_score,
+        strong_matches=strong_matches[:8],
+        missing_keywords=missing_keywords[:8],
+        recommendation=build_job_match_recommendation(match_score),
+    )
+
+
+def extract_keywords(text: str) -> list[str]:
+    words = re.findall(r"\b[a-zA-Z][a-zA-Z0-9+#.-]{2,}\b", text.lower())
+    keywords = []
+
+    for word in words:
+        normalized_word = word.strip(".,:;()[]{}")
+        if len(normalized_word) < 4 or normalized_word in STOP_WORDS:
+            continue
+
+        if normalized_word not in keywords:
+            keywords.append(normalized_word)
+
+    return keywords[:24]
+
+
+def build_job_match_recommendation(match_score: int) -> str:
+    if match_score >= 75:
+        return "The CV is well aligned with the target role. Tailor the summary and project bullets for extra impact."
+
+    if match_score >= 45:
+        return "The CV has partial alignment. Add missing role keywords and connect them to projects or experience."
+
+    return "The CV needs stronger tailoring before applying to this role."
+
+
+def build_priority_fixes(
+    sections: dict[str, bool],
+    found_keywords: list[str],
+    measurable_result_count: int,
+    job_match: JobMatch,
+) -> list[str]:
+    fixes = []
+
+    if job_match.missing_keywords:
+        fixes.append(
+            "Add missing job keywords where they honestly match your skills: "
+            + ", ".join(job_match.missing_keywords[:4])
+            + "."
+        )
+
+    if not sections["projects"]:
+        fixes.append("Add a Projects section with technologies used, your role, and outcomes.")
+
+    if measurable_result_count == 0:
+        fixes.append("Rewrite experience and project bullets with measurable results.")
+
+    if len(found_keywords) < 4:
+        fixes.append("Expand the Skills section with specific tools, languages, and frameworks.")
+
+    if not sections["experience"]:
+        fixes.append("Add internship, team project, volunteering, or coursework experience.")
+
+    if not fixes:
+        fixes.append("Tailor the top projects and summary to the exact target role.")
+
+    return fixes[:3]
+
+
+def build_rewrite_suggestions(
+    sections: dict[str, bool],
+    found_keywords: list[str],
+) -> list[RewriteSuggestion]:
+    suggestions = [
+        RewriteSuggestion(
+            section="Projects",
+            before="Worked on a student project.",
+            after=(
+                "Built a student web application using "
+                f"{', '.join(found_keywords[:3]) or 'relevant technologies'}, focusing on clear user flow and structured results."
+            ),
+            reason="The rewritten version shows technologies, ownership, and project purpose.",
+        ),
+        RewriteSuggestion(
+            section="Experience",
+            before="Helped with team tasks.",
+            after="Collaborated in a team to implement, test, and document a working software prototype.",
+            reason="The rewritten version uses action verbs and explains the contribution.",
+        ),
+    ]
+
+    if not sections["skills"]:
+        suggestions.append(
+            RewriteSuggestion(
+                section="Skills",
+                before="Good computer skills.",
+                after="Skills: Python, React, FastAPI, SQL, Git, testing, teamwork.",
+                reason="Specific skill names are easier for recruiters and ATS tools to match.",
+            )
+        )
+
+    return suggestions[:3]
