@@ -16,7 +16,12 @@ import {
 } from "lucide-react";
 import "./styles.css";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
+// In production (Vercel) the API is served from the same origin, so use a
+// relative path. In local dev the Vite server (5173) talks to uvicorn (8000).
+// Override with VITE_API_BASE_URL when needed.
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ??
+  (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
 
 const initialResult = {
   filename: "student-cv.pdf",

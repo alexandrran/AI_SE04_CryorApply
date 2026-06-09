@@ -1,0 +1,15 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "echo \"skip root install; deps handled in buildCommand and requirements.txt\"",
+  "buildCommand": "cd Source/frontend && npm install && npm run build",
+  "outputDirectory": "Source/frontend/dist",
+  "functions": {
+    "api/index.py": {
+      "includeFiles": "Source/backend/**"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index" },
+    { "source": "/health", "destination": "/api/index" }
+  ]
+}

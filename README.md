@@ -48,6 +48,34 @@ Responsible for backend logic, PDF/DOCX text extraction, Supabase database and s
 | 5 June 2026 | Mikhail Makarchuk | Implemented and styled the CV review upload flow with backend integration, validation, and dynamic result rendering.|
 | 5 June 2026 | Alexandr An | Add CV text extraction validation |
 
+## Deploy to Vercel (serverless)
+
+The app runs on Vercel as a single project: the Vite frontend is built into
+static files and the FastAPI backend runs as a Python serverless function.
+
+Relevant files:
+
+- `vercel.json` builds the frontend, declares the Python function, and routes
+  `/api/*` and `/health` to the backend.
+- `api/index.py` is the serverless entry point; it re-exports the existing
+  FastAPI app from `Source/backend/app/main.py` (no code duplication).
+- `requirements.txt` (repo root) provides the Python dependencies.
+
+Steps:
+
+1. Push the repository to GitHub and import it in Vercel (no framework preset
+   needed — `vercel.json` configures the build).
+2. In Vercel project settings, add environment variables:
+   - `GEMINI_API_KEY` — your Gemini API key (without it, the backend falls back
+     to the rule-based analyzer).
+   - `GEMINI_MODEL` — optional, defaults to `gemini-2.5-flash`.
+3. Deploy. The frontend is served from the project root and calls the API at the
+   same origin (`/api/cv/review`, `/health`), so no extra configuration is
+   required.
+
+For local development, see `Source/backend/README.md` (backend) and run
+`npm run dev` in `Source/frontend` (frontend on port 5173, backend on 8000).
+
 ## GitHub Setup
 
 The GitHub repository for the project has been created and is available at:
