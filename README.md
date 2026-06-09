@@ -48,6 +48,7 @@ Responsible for backend logic, PDF/DOCX text extraction, Supabase database and s
 | 5 June 2026 | Mikhail Makarchuk | Implemented and styled the CV review upload flow with backend integration, validation, and dynamic result rendering.|
 | 5 June 2026 | Alexandr An | Add CV text extraction validation |
 | 9 June 2026 | Konstantin Shevtsov | Add Vercel serverless deployment: wrap FastAPI in a Python function, build frontend as static, route API via vercel.json |
+| 9 June 2026 | Konstantin Shevtsov | Redesign frontend into a step-by-step wizard (CV, target role, review) with framer-motion animations, animated score ring, skeleton loading, and a refreshed visual style |
 
 ## Deploy to Vercel (serverless)
 
