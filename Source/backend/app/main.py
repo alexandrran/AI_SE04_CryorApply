@@ -5,15 +5,25 @@ import os
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.schemas import CvQuestionsResponse, CvReviewResponse, StructuredCv
+from app.schemas import (
+    CoverLetterResponse,
+    CvBuilderInput,
+    CvQuestionsResponse,
+    CvReviewResponse,
+    StructuredCv,
+)
 from app.services.cv_analyzer import analyze_cv_text
 from app.services.cv_rebuilder import (
     URL_RE,
+    build_cv_from_input,
+    generate_cover_letter,
     generate_cv_questions,
     rebuild_cv_text,
 )
 from app.services.gemini_analyzer import (
     analyze_cv_with_gemini,
+    build_cv_from_input_with_gemini,
+    generate_cover_letter_with_gemini,
     generate_cv_questions_with_gemini,
     rebuild_cv_with_gemini,
 )
@@ -241,3 +251,57 @@ async def rebuild_cv(
         )
 
     return merge_extra_links(rebuilt, extra_links)
+
+
+@app.post("/api/cover-letter", response_model=CoverLetterResponse)
+async def cover_letter(
+    file: UploadFile | None = File(None),
+    cv_text: str | None = Form(None),
+    job_description: str | None = Form(None),
+) -> CoverLetterResponse:
+    """Generate a cover letter tailored to the CV and a target role."""
+    if not (job_description or "").strip():
+        raise HTTPException(
+            status_code=400,
+            detail="A job description is required to write a cover letter.",
+        )
+
+    _, resolved_text = await resolve_cv_text(file, cv_text)
+
+    try:
+        letter = generate_cover_letter_with_gemini(
+            cv_text=resolved_text,
+            job_description=job_description,
+        )
+    except Exception:
+        logger.exception("Gemini cover letter failed; using template fallback")
+        letter = None
+
+    if not letter:
+        letter = generate_cover_letter(
+            cv_text=resolved_text,
+            job_description=job_description,
+        )
+
+    return letter
+
+
+@app.post("/api/cv/generate", response_model=StructuredCv)
+def generate_cv(payload: CvBuilderInput) -> StructuredCv:
+    """Build a polished CV from scratch using the build-from-scratch form."""
+    if not payload.full_name.strip() and not payload.experience and not payload.education:
+        raise HTTPException(
+            status_code=400,
+            detail="Add at least your name and some details to build a CV.",
+        )
+
+    try:
+        built = build_cv_from_input_with_gemini(payload)
+    except Exception:
+        logger.exception("Gemini CV build failed; using rule-based fallback")
+        built = None
+
+    if not built:
+        built = build_cv_from_input(payload)
+
+    return merge_extra_links(built, list(payload.contact.links))

@@ -86,3 +86,44 @@ class StructuredCv(BaseModel):
     languages: list[str] = Field(default_factory=list)
     certifications: list[str] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
+
+
+class CoverLetterResponse(BaseModel):
+    cover_letter: str
+    highlights: list[str] = Field(default_factory=list)
+    word_count: int = 0
+
+
+class CvBuilderExperience(BaseModel):
+    title: str = ""
+    organization: str = ""
+    period: str = ""
+    raw: str = ""
+
+
+class CvBuilderEducation(BaseModel):
+    school: str = ""
+    program: str = ""
+    period: str = ""
+    details: str = ""
+
+
+class CvBuilderProject(BaseModel):
+    name: str = ""
+    raw: str = ""
+
+
+class CvBuilderInput(BaseModel):
+    """Raw, rough information collected from the build-from-scratch form."""
+
+    full_name: str = ""
+    target_role: str = ""
+    contact: CvContact = Field(default_factory=CvContact)
+    summary: str = ""
+    skills: list[str] = Field(default_factory=list)
+    experience: list[CvBuilderExperience] = Field(default_factory=list)
+    education: list[CvBuilderEducation] = Field(default_factory=list)
+    projects: list[CvBuilderProject] = Field(default_factory=list)
+    languages: list[str] = Field(default_factory=list)
+    certifications: list[str] = Field(default_factory=list)
+    job_description: str = ""

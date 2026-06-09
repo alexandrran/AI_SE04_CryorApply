@@ -22,14 +22,17 @@ import {
   HelpCircle,
   Keyboard,
   ListChecks,
+  Mail,
   PenLine,
+  Plus,
   RotateCcw,
   Sparkles,
+  Trash2,
   UploadCloud,
   Wand2,
   X
 } from "lucide-react";
-import "./styles.css";
+import "../null.css";
 
 // In production (Vercel) the API is served from the same origin, so use a
 // relative path. In local dev the Vite server (5173) talks to uvicorn (8000).
@@ -200,6 +203,28 @@ function App() {
   const [questionAnswers, setQuestionAnswers] = useState({});
   const cvDocRef = useRef(null);
 
+  // Cover letter state
+  const [coverLetterJobDesc, setCoverLetterJobDesc] = useState("");
+  const [coverLetterResult, setCoverLetterResult] = useState(null);
+
+  // Builder state
+  const [builderForm, setBuilderForm] = useState({
+    full_name: "",
+    target_role: "",
+    email: "",
+    phone: "",
+    location: "",
+    links: "",
+    summary: "",
+    skills: "",
+    job_description: "",
+    experience: [{ title: "", organization: "", period: "", raw: "" }],
+    education: [{ school: "", program: "", period: "", details: "" }],
+    projects: [{ name: "", raw: "" }],
+    languages: "",
+    certifications: ""
+  });
+
   const activeIndex = ["result", "questioning", "questions", "rebuilding", "rebuilt"].includes(step)
     ? 2
     : step === "role" || step === "analyzing"
@@ -301,6 +326,108 @@ function App() {
     setRebuiltCv(null);
     setCvQuestions([]);
     setQuestionAnswers({});
+    setCoverLetterResult(null);
+    setCoverLetterJobDesc("");
+  };
+
+  // ---- Cover letter ----
+  const generateCoverLetter = async () => {
+    if (!coverLetterJobDesc.trim()) {
+      setErrorMessage("Paste a job description to generate the cover letter.");
+      return;
+    }
+    if (!selectedFile && !cvText.trim()) {
+      setErrorMessage("Add your CV first (upload or paste) before generating a cover letter.");
+      return;
+    }
+    setErrorMessage("");
+    setStep("generating-cover-letter");
+    try {
+      const formData = new FormData();
+      if (selectedFile) formData.append("file", selectedFile);
+      else formData.append("cv_text", cvText.trim());
+      formData.append("job_description", coverLetterJobDesc.trim());
+      const res = await fetch(`${API_BASE_URL}/api/cover-letter`, { method: "POST", body: formData });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.detail ?? "Cover letter generation failed.");
+      }
+      setCoverLetterResult(await res.json());
+      setStep("cover-letter-result");
+    } catch (err) {
+      setErrorMessage(err.message);
+      setStep("cover-letter");
+    }
+  };
+
+  // ---- CV Builder ----
+  const updateBuilderList = (field, index, key, value) => {
+    setBuilderForm((prev) => {
+      const arr = prev[field].map((item, i) =>
+        i === index ? { ...item, [key]: value } : item
+      );
+      return { ...prev, [field]: arr };
+    });
+  };
+
+  const addBuilderListItem = (field, template) => {
+    setBuilderForm((prev) => ({ ...prev, [field]: [...prev[field], { ...template }] }));
+  };
+
+  const removeBuilderListItem = (field, index) => {
+    setBuilderForm((prev) => ({
+      ...prev,
+      [field]: prev[field].filter((_, i) => i !== index)
+    }));
+  };
+
+  const generateBuilderCv = async () => {
+    if (!builderForm.full_name.trim() && !builderForm.experience[0]?.raw.trim() && !builderForm.education[0]?.school.trim()) {
+      setErrorMessage("Add at least your name and some details to build a CV.");
+      return;
+    }
+    setErrorMessage("");
+    setStep("rebuilding");
+    try {
+      const payload = {
+        full_name: builderForm.full_name,
+        target_role: builderForm.target_role,
+        contact: {
+          email: builderForm.email,
+          phone: builderForm.phone,
+          location: builderForm.location,
+          links: builderForm.links.split(/[,\n]+/).map((s) => s.trim()).filter(Boolean)
+        },
+        summary: builderForm.summary,
+        skills: builderForm.skills.split(/[,\n]+/).map((s) => s.trim()).filter(Boolean),
+        job_description: builderForm.job_description,
+        experience: builderForm.experience.filter((e) => e.title || e.raw).map((e) => ({
+          title: e.title, organization: e.organization, period: e.period, raw: e.raw
+        })),
+        education: builderForm.education.filter((e) => e.school || e.program).map((e) => ({
+          school: e.school, program: e.program, period: e.period, details: e.details
+        })),
+        projects: builderForm.projects.filter((p) => p.name || p.raw).map((p) => ({
+          name: p.name, raw: p.raw
+        })),
+        languages: builderForm.languages.split(/[,\n]+/).map((s) => s.trim()).filter(Boolean),
+        certifications: builderForm.certifications.split(/[,\n]+/).map((s) => s.trim()).filter(Boolean)
+      };
+      const res = await fetch(`${API_BASE_URL}/api/cv/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.detail ?? "CV generation failed.");
+      }
+      setRebuiltCv(await res.json());
+      setStep("rebuilt");
+    } catch (err) {
+      setErrorMessage(err.message);
+      setStep("builder");
+    }
   };
 
   const appendCvInput = (formData) => {
@@ -399,21 +526,33 @@ function App() {
       const pdf = new jsPDF({ unit: "pt", format: "a4" });
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
-      const imgW = pageW;
-      const imgH = (canvas.height * imgW) / canvas.width;
 
-      let position = 0;
-      let heightLeft = imgH;
-
-      pdf.addImage(imgData, "PNG", 0, position, imgW, imgH);
-      heightLeft -= pageH;
-
-      while (heightLeft > 0) {
-        position -= pageH;
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, position, imgW, imgH);
-        heightLeft -= pageH;
+      // Fit the whole CV onto a single A4 page (scale down if it is taller).
+      let renderW = pageW;
+      let renderH = (canvas.height * renderW) / canvas.width;
+      if (renderH > pageH) {
+        renderH = pageH;
+        renderW = (canvas.width * renderH) / canvas.height;
       }
+      const offsetX = (pageW - renderW) / 2;
+      const offsetY = 0;
+
+      pdf.addImage(imgData, "PNG", offsetX, offsetY, renderW, renderH);
+
+      // Overlay real, clickable PDF links on top of the rasterized anchors.
+      const nodeRect = node.getBoundingClientRect();
+      const scaleX = renderW / nodeRect.width;
+      const scaleY = renderH / nodeRect.height;
+      node.querySelectorAll("a[href]").forEach((anchor) => {
+        const rect = anchor.getBoundingClientRect();
+        pdf.link(
+          offsetX + (rect.left - nodeRect.left) * scaleX,
+          offsetY + (rect.top - nodeRect.top) * scaleY,
+          rect.width * scaleX,
+          rect.height * scaleY,
+          { url: anchor.href }
+        );
+      });
 
       const safeName = (rebuiltCv.full_name || "cv")
         .toLowerCase()
@@ -562,6 +701,18 @@ function App() {
                   stored after the review.
                 </p>
               </header>
+
+              <div className="mode-tabs">
+                <button className="mode-tab active" type="button">
+                  <FileText size={16} /> Review CV
+                </button>
+                <button className="mode-tab" type="button" onClick={() => { setErrorMessage(""); setStep("cover-letter"); }}>
+                  <Mail size={16} /> Cover Letter
+                </button>
+                <button className="mode-tab" type="button" onClick={() => { setErrorMessage(""); setStep("builder"); }}>
+                  <Plus size={16} /> Build from scratch
+                </button>
+              </div>
 
               <input
                 ref={fileInputRef}
@@ -1049,8 +1200,8 @@ function App() {
                   <h1>Your new CV</h1>
                 </div>
                 <div className="result-head-actions">
-                  <button className="ghost" type="button" onClick={() => setStep("result")}>
-                    <ArrowLeft size={16} /> Back to review
+                  <button className="ghost" type="button" onClick={() => setStep(reviewResult ? "result" : "builder")}>
+                    <ArrowLeft size={16} /> Back
                   </button>
                   <button className="primary" type="button" onClick={downloadRebuiltCv}>
                     <FileDown size={16} /> Download CV (PDF)
@@ -1080,27 +1231,495 @@ function App() {
               </motion.div>
             </motion.section>
           ) : null}
+
+          {/* ── Cover letter ── */}
+          {step === "cover-letter" ? (
+            <motion.section
+              key="cover-letter"
+              className="panel"
+              variants={panelVariants}
+              initial="initial"
+              animate="enter"
+              exit="exit"
+              transition={{ duration: 0.4, ease: EASE }}
+            >
+              <header className="panel-head">
+                <p className="eyebrow"><Mail size={14} /> Cover Letter</p>
+                <h1>Generate cover letter</h1>
+                <p className="lead">
+                  Your CV is already loaded. Paste the job description and we will
+                  write a tailored letter using only facts from your CV.
+                </p>
+              </header>
+
+              <div className="mode-tabs">
+                <button className="mode-tab" type="button" onClick={() => { setErrorMessage(""); setStep("cv"); }}>
+                  <FileText size={16} /> Review CV
+                </button>
+                <button className="mode-tab active" type="button">
+                  <Mail size={16} /> Cover Letter
+                </button>
+                <button className="mode-tab" type="button" onClick={() => { setErrorMessage(""); setStep("builder"); }}>
+                  <Plus size={16} /> Build from scratch
+                </button>
+              </div>
+
+              {!selectedFile && !cvText.trim() ? (
+                <div className="info-banner">
+                  <AlertCircle size={16} />
+                  <span>Go to <strong>Review CV</strong> tab and add your CV first, then come back here.</span>
+                </div>
+              ) : null}
+
+              <label className="field-block">
+                <span><BriefcaseBusiness size={16} /> Job description</span>
+                <textarea
+                  value={coverLetterJobDesc}
+                  onChange={(e) => setCoverLetterJobDesc(e.target.value)}
+                  placeholder="Paste the full job posting or a short description of the role."
+                  rows={8}
+                />
+              </label>
+
+              <ErrorNote message={errorMessage} />
+
+              <div className="panel-actions end">
+                <button
+                  className="primary"
+                  type="button"
+                  onClick={generateCoverLetter}
+                  disabled={!selectedFile && !cvText.trim()}
+                >
+                  <Mail size={18} /> Generate cover letter
+                </button>
+              </div>
+            </motion.section>
+          ) : null}
+
+          {step === "generating-cover-letter" ? (
+            <motion.section
+              key="generating-cover-letter"
+              className="panel"
+              variants={panelVariants}
+              initial="initial"
+              animate="enter"
+              exit="exit"
+              transition={{ duration: 0.4, ease: EASE }}
+            >
+              <header className="panel-head">
+                <p className="eyebrow">
+                  <motion.span
+                    className="dot-live"
+                    animate={{ opacity: [1, 0.3, 1] }}
+                    transition={{ duration: 1.4, repeat: Infinity }}
+                  />
+                  Writing
+                </p>
+                <h1>Crafting your cover letter</h1>
+                <p className="lead">Tailoring it to the role using your CV facts.</p>
+              </header>
+              <div className="skeleton doc" />
+            </motion.section>
+          ) : null}
+
+          {step === "cover-letter-result" && coverLetterResult ? (
+            <motion.section
+              key="cover-letter-result"
+              className="panel result"
+              variants={panelVariants}
+              initial="initial"
+              animate="enter"
+              exit="exit"
+              transition={{ duration: 0.4, ease: EASE }}
+            >
+              <header className="result-head">
+                <div>
+                  <p className="eyebrow"><Mail size={14} /> Cover Letter</p>
+                  <h1>Your cover letter</h1>
+                </div>
+                <div className="result-head-actions">
+                  <button className="ghost" type="button" onClick={() => setStep("cover-letter")}>
+                    <ArrowLeft size={16} /> Edit
+                  </button>
+                  <button
+                    className="primary"
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard?.writeText(coverLetterResult.cover_letter).catch(() => {});
+                    }}
+                  >
+                    <Check size={16} /> Copy text
+                  </button>
+                </div>
+              </header>
+
+              <ErrorNote message={errorMessage} />
+
+              {coverLetterResult.highlights?.length ? (
+                <div className="cv-notes">
+                  <strong>What was mapped from your CV</strong>
+                  <ul>
+                    {coverLetterResult.highlights.map((h, i) => (
+                      <li key={i}>{h}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              <motion.div
+                className="cover-letter-body"
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: EASE }}
+              >
+                <pre>{coverLetterResult.cover_letter}</pre>
+                <p className="cover-letter-meta">{coverLetterResult.word_count} words</p>
+              </motion.div>
+            </motion.section>
+          ) : null}
+
+          {/* ── CV Builder ── */}
+          {step === "builder" ? (
+            <motion.section
+              key="builder"
+              className="panel"
+              variants={panelVariants}
+              initial="initial"
+              animate="enter"
+              exit="exit"
+              transition={{ duration: 0.4, ease: EASE }}
+            >
+              <header className="panel-head">
+                <p className="eyebrow"><Plus size={14} /> CV Builder</p>
+                <h1>Build your CV from scratch</h1>
+                <p className="lead">
+                  Fill in what you have — rough notes are fine. Gemini will turn
+                  them into polished, ATS-friendly bullet points.
+                </p>
+              </header>
+
+              <div className="mode-tabs">
+                <button className="mode-tab" type="button" onClick={() => { setErrorMessage(""); setStep("cv"); }}>
+                  <FileText size={16} /> Review CV
+                </button>
+                <button className="mode-tab" type="button" onClick={() => { setErrorMessage(""); setStep("cover-letter"); }}>
+                  <Mail size={16} /> Cover Letter
+                </button>
+                <button className="mode-tab active" type="button">
+                  <Plus size={16} /> Build from scratch
+                </button>
+              </div>
+
+              <div className="builder-form">
+                {/* Basics */}
+                <div className="builder-section">
+                  <h3>Basics</h3>
+                  <div className="builder-row-2">
+                    <label className="field-block">
+                      <span>Full name</span>
+                      <input
+                        value={builderForm.full_name}
+                        onChange={(e) => setBuilderForm((p) => ({ ...p, full_name: e.target.value }))}
+                        placeholder="Aisha Karimova"
+                      />
+                    </label>
+                    <label className="field-block">
+                      <span>Target role</span>
+                      <input
+                        value={builderForm.target_role}
+                        onChange={(e) => setBuilderForm((p) => ({ ...p, target_role: e.target.value }))}
+                        placeholder="Junior Frontend Developer"
+                      />
+                    </label>
+                  </div>
+                  <div className="builder-row-3">
+                    <label className="field-block">
+                      <span>Email</span>
+                      <input
+                        type="email"
+                        value={builderForm.email}
+                        onChange={(e) => setBuilderForm((p) => ({ ...p, email: e.target.value }))}
+                        placeholder="you@example.com"
+                      />
+                    </label>
+                    <label className="field-block">
+                      <span>Phone</span>
+                      <input
+                        value={builderForm.phone}
+                        onChange={(e) => setBuilderForm((p) => ({ ...p, phone: e.target.value }))}
+                        placeholder="+7 701 555 0142"
+                      />
+                    </label>
+                    <label className="field-block">
+                      <span>Location</span>
+                      <input
+                        value={builderForm.location}
+                        onChange={(e) => setBuilderForm((p) => ({ ...p, location: e.target.value }))}
+                        placeholder="Almaty, KZ"
+                      />
+                    </label>
+                  </div>
+                  <label className="field-block">
+                    <span>Links (GitHub, LinkedIn, portfolio — one per line or comma-separated)</span>
+                    <textarea
+                      value={builderForm.links}
+                      onChange={(e) => setBuilderForm((p) => ({ ...p, links: e.target.value }))}
+                      placeholder="github.com/yourname&#10;linkedin.com/in/yourname"
+                      rows={2}
+                    />
+                  </label>
+                </div>
+
+                {/* Summary */}
+                <div className="builder-section">
+                  <h3>About you (optional rough notes)</h3>
+                  <label className="field-block">
+                    <span>Target job description (helps tailor the language)</span>
+                    <textarea
+                      value={builderForm.job_description}
+                      onChange={(e) => setBuilderForm((p) => ({ ...p, job_description: e.target.value }))}
+                      placeholder="Paste a job description to tailor the CV language."
+                      rows={3}
+                    />
+                  </label>
+                  <label className="field-block">
+                    <span>Skills (comma-separated)</span>
+                    <textarea
+                      value={builderForm.skills}
+                      onChange={(e) => setBuilderForm((p) => ({ ...p, skills: e.target.value }))}
+                      placeholder="JavaScript, React, Git, SQL"
+                      rows={2}
+                    />
+                  </label>
+                </div>
+
+                {/* Experience */}
+                <div className="builder-section">
+                  <h3>Experience</h3>
+                  {builderForm.experience.map((exp, i) => (
+                    <div className="builder-list-item" key={i}>
+                      <div className="builder-row-2">
+                        <label className="field-block">
+                          <span>Job title</span>
+                          <input
+                            value={exp.title}
+                            onChange={(e) => updateBuilderList("experience", i, "title", e.target.value)}
+                            placeholder="Sales Assistant"
+                          />
+                        </label>
+                        <label className="field-block">
+                          <span>Organization</span>
+                          <input
+                            value={exp.organization}
+                            onChange={(e) => updateBuilderList("experience", i, "organization", e.target.value)}
+                            placeholder="Company name"
+                          />
+                        </label>
+                      </div>
+                      <div className="builder-row-2">
+                        <label className="field-block">
+                          <span>Period</span>
+                          <input
+                            value={exp.period}
+                            onChange={(e) => updateBuilderList("experience", i, "period", e.target.value)}
+                            placeholder="Jun 2024 – present"
+                          />
+                        </label>
+                        <label className="field-block">
+                          <span>What you did (rough notes)</span>
+                          <input
+                            value={exp.raw}
+                            onChange={(e) => updateBuilderList("experience", i, "raw", e.target.value)}
+                            placeholder="helped customers, tracked stock in excel"
+                          />
+                        </label>
+                      </div>
+                      {builderForm.experience.length > 1 ? (
+                        <button className="remove-btn" type="button" onClick={() => removeBuilderListItem("experience", i)}>
+                          <Trash2 size={14} /> Remove
+                        </button>
+                      ) : null}
+                    </div>
+                  ))}
+                  <button className="add-btn" type="button" onClick={() => addBuilderListItem("experience", { title: "", organization: "", period: "", raw: "" })}>
+                    <Plus size={14} /> Add position
+                  </button>
+                </div>
+
+                {/* Education */}
+                <div className="builder-section">
+                  <h3>Education</h3>
+                  {builderForm.education.map((edu, i) => (
+                    <div className="builder-list-item" key={i}>
+                      <div className="builder-row-2">
+                        <label className="field-block">
+                          <span>School / University</span>
+                          <input
+                            value={edu.school}
+                            onChange={(e) => updateBuilderList("education", i, "school", e.target.value)}
+                            placeholder="KBTU"
+                          />
+                        </label>
+                        <label className="field-block">
+                          <span>Program / Degree</span>
+                          <input
+                            value={edu.program}
+                            onChange={(e) => updateBuilderList("education", i, "program", e.target.value)}
+                            placeholder="BSc Computer Science"
+                          />
+                        </label>
+                      </div>
+                      <div className="builder-row-2">
+                        <label className="field-block">
+                          <span>Period</span>
+                          <input
+                            value={edu.period}
+                            onChange={(e) => updateBuilderList("education", i, "period", e.target.value)}
+                            placeholder="2023 – 2027"
+                          />
+                        </label>
+                        <label className="field-block">
+                          <span>Details (GPA, honours, etc.)</span>
+                          <input
+                            value={edu.details}
+                            onChange={(e) => updateBuilderList("education", i, "details", e.target.value)}
+                            placeholder="GPA 3.6"
+                          />
+                        </label>
+                      </div>
+                      {builderForm.education.length > 1 ? (
+                        <button className="remove-btn" type="button" onClick={() => removeBuilderListItem("education", i)}>
+                          <Trash2 size={14} /> Remove
+                        </button>
+                      ) : null}
+                    </div>
+                  ))}
+                  <button className="add-btn" type="button" onClick={() => addBuilderListItem("education", { school: "", program: "", period: "", details: "" })}>
+                    <Plus size={14} /> Add education
+                  </button>
+                </div>
+
+                {/* Projects */}
+                <div className="builder-section">
+                  <h3>Projects</h3>
+                  {builderForm.projects.map((proj, i) => (
+                    <div className="builder-list-item" key={i}>
+                      <div className="builder-row-2">
+                        <label className="field-block">
+                          <span>Project name</span>
+                          <input
+                            value={proj.name}
+                            onChange={(e) => updateBuilderList("projects", i, "name", e.target.value)}
+                            placeholder="Weather App"
+                          />
+                        </label>
+                        <label className="field-block">
+                          <span>What you built (rough notes)</span>
+                          <input
+                            value={proj.raw}
+                            onChange={(e) => updateBuilderList("projects", i, "raw", e.target.value)}
+                            placeholder="react app showing forecast from a public api"
+                          />
+                        </label>
+                      </div>
+                      {builderForm.projects.length > 1 ? (
+                        <button className="remove-btn" type="button" onClick={() => removeBuilderListItem("projects", i)}>
+                          <Trash2 size={14} /> Remove
+                        </button>
+                      ) : null}
+                    </div>
+                  ))}
+                  <button className="add-btn" type="button" onClick={() => addBuilderListItem("projects", { name: "", raw: "" })}>
+                    <Plus size={14} /> Add project
+                  </button>
+                </div>
+
+                {/* Languages & Certs */}
+                <div className="builder-section">
+                  <h3>Languages &amp; Certifications</h3>
+                  <div className="builder-row-2">
+                    <label className="field-block">
+                      <span>Languages (comma-separated)</span>
+                      <input
+                        value={builderForm.languages}
+                        onChange={(e) => setBuilderForm((p) => ({ ...p, languages: e.target.value }))}
+                        placeholder="Kazakh, Russian, English"
+                      />
+                    </label>
+                    <label className="field-block">
+                      <span>Certifications (comma-separated)</span>
+                      <input
+                        value={builderForm.certifications}
+                        onChange={(e) => setBuilderForm((p) => ({ ...p, certifications: e.target.value }))}
+                        placeholder="Google UX Design Certificate"
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <ErrorNote message={errorMessage} />
+
+              <div className="panel-actions end">
+                <button className="primary" type="button" onClick={generateBuilderCv}>
+                  <Sparkles size={18} /> Generate my CV
+                </button>
+              </div>
+            </motion.section>
+          ) : null}
         </AnimatePresence>
       </main>
     </div>
   );
 }
 
+function normalizeHref(link) {
+  const value = String(link).trim();
+  if (/^https?:\/\//i.test(value)) return value;
+  if (/^mailto:|^tel:/i.test(value)) return value;
+  if (value.includes("@")) return `mailto:${value}`;
+  return `https://${value}`;
+}
+
 const CvDocument = React.forwardRef(function CvDocument({ cv }, ref) {
   const contact = cv.contact || {};
-  const contactBits = [
-    contact.email,
-    contact.phone,
-    contact.location,
-    ...(contact.links || [])
-  ].filter(Boolean);
+  const contactNodes = [];
+  if (contact.email) {
+    contactNodes.push(
+      <a key="email" href={`mailto:${contact.email}`}>{contact.email}</a>
+    );
+  }
+  if (contact.phone) {
+    contactNodes.push(
+      <a key="phone" href={`tel:${contact.phone.replace(/[^\d+]/g, "")}`}>{contact.phone}</a>
+    );
+  }
+  if (contact.location) {
+    contactNodes.push(<span key="location">{contact.location}</span>);
+  }
+  (contact.links || []).forEach((link, index) => {
+    contactNodes.push(
+      <a key={`link-${index}`} href={normalizeHref(link)} target="_blank" rel="noreferrer">
+        {link}
+      </a>
+    );
+  });
 
   return (
     <div className="cv-doc" ref={ref}>
       <header className="cv-doc-head">
         <h2>{cv.full_name || "Your Name"}</h2>
         {cv.headline ? <p className="cv-headline">{cv.headline}</p> : null}
-        {contactBits.length ? <p className="cv-contact">{contactBits.join("   •   ")}</p> : null}
+        {contactNodes.length ? (
+          <p className="cv-contact">
+            {contactNodes.map((node, index) => (
+              <React.Fragment key={index}>
+                {index > 0 ? <span className="cv-contact-sep">•</span> : null}
+                {node}
+              </React.Fragment>
+            ))}
+          </p>
+        ) : null}
       </header>
 
       {cv.summary ? (

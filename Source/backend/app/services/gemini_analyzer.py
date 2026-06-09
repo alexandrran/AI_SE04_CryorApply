@@ -5,7 +5,13 @@ from pathlib import Path
 from google import genai
 from dotenv import load_dotenv
 
-from app.schemas import CvQuestionsResponse, CvReviewResponse, StructuredCv
+from app.schemas import (
+    CoverLetterResponse,
+    CvBuilderInput,
+    CvQuestionsResponse,
+    CvReviewResponse,
+    StructuredCv,
+)
 
 DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 MAX_CV_TEXT_CHARS = 12000
@@ -426,5 +432,173 @@ Target job description:
 {job_context}
 
 Source CV text:
+{cv_text}
+"""
+
+
+def build_cv_from_input_with_gemini(payload: CvBuilderInput) -> StructuredCv | None:
+    project_root = Path(__file__).resolve().parents[4]
+    load_dotenv(project_root / ".env")
+    load_dotenv()
+
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        return None
+
+    model = os.getenv("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
+    client = genai.Client(api_key=api_key)
+    prompt = build_cv_generate_prompt(payload)
+
+    response = client.models.generate_content(
+        model=model,
+        contents=prompt,
+        config={
+            "response_mime_type": "application/json",
+            "response_json_schema": CV_REBUILD_SCHEMA,
+        },
+    )
+
+    data = json.loads(response.text)
+    data["filename"] = "cryorapply-cv.pdf"
+    return StructuredCv.model_validate(data)
+
+
+def builder_input_to_text(payload: CvBuilderInput) -> str:
+    contact = payload.contact
+    lines = [
+        f"Full name: {payload.full_name}",
+        f"Target role: {payload.target_role}",
+        "Contact: "
+        + "; ".join(
+            part
+            for part in [
+                f"email={contact.email}" if contact.email else "",
+                f"phone={contact.phone}" if contact.phone else "",
+                f"location={contact.location}" if contact.location else "",
+                f"links={', '.join(contact.links)}" if contact.links else "",
+            ]
+            if part
+        ),
+    ]
+    if payload.summary:
+        lines.append(f"About (rough notes): {payload.summary}")
+    if payload.skills:
+        lines.append(f"Skills: {', '.join(payload.skills)}")
+    if payload.experience:
+        lines.append("Experience:")
+        for item in payload.experience:
+            lines.append(
+                f"- {item.title} at {item.organization} ({item.period}): {item.raw}"
+            )
+    if payload.education:
+        lines.append("Education:")
+        for item in payload.education:
+            lines.append(
+                f"- {item.program} at {item.school} ({item.period}): {item.details}"
+            )
+    if payload.projects:
+        lines.append("Projects:")
+        for item in payload.projects:
+            lines.append(f"- {item.name}: {item.raw}")
+    if payload.languages:
+        lines.append(f"Languages: {', '.join(payload.languages)}")
+    if payload.certifications:
+        lines.append(f"Certifications: {', '.join(payload.certifications)}")
+    return "\n".join(lines)
+
+
+def build_cv_generate_prompt(payload: CvBuilderInput) -> str:
+    job_context = payload.job_description.strip() or "No job description was provided."
+
+    return f"""
+You are an expert CV writer for students and beginner job seekers.
+
+Build a clean, professional, ATS-friendly CV from the rough information below,
+written to the standard of a top university career center.
+{HARVARD_RESUME_RULES}
+Additional strict rules:
+- Use ONLY the information provided. Never invent employers, dates, degrees,
+  metrics, or contact details that are not given.
+- Turn rough notes into concise bullet points that start with action verbs.
+- Keep the user's contact links exactly as given in contact.links.
+- Write a short professional summary of 2 to 3 sentences tailored to the target
+  role.
+- In "notes", list honest, short warnings about weak or thin areas the user
+  should improve (for example: add measurable results, add a project).
+
+Target job description:
+{job_context}
+
+Information provided by the user:
+{builder_input_to_text(payload)}
+"""
+
+
+COVER_LETTER_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "cover_letter": {"type": "string"},
+        "highlights": {"type": "array", "items": {"type": "string"}},
+    },
+    "required": ["cover_letter", "highlights"],
+}
+
+
+def generate_cover_letter_with_gemini(
+    cv_text: str,
+    job_description: str,
+) -> CoverLetterResponse | None:
+    project_root = Path(__file__).resolve().parents[4]
+    load_dotenv(project_root / ".env")
+    load_dotenv()
+
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        return None
+
+    model = os.getenv("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
+    client = genai.Client(api_key=api_key)
+    prompt = build_cover_letter_prompt(
+        cv_text[:MAX_CV_TEXT_CHARS],
+        job_description.strip(),
+    )
+
+    response = client.models.generate_content(
+        model=model,
+        contents=prompt,
+        config={
+            "response_mime_type": "application/json",
+            "response_json_schema": COVER_LETTER_SCHEMA,
+        },
+    )
+
+    data = json.loads(response.text)
+    letter = data.get("cover_letter", "")
+    return CoverLetterResponse(
+        cover_letter=letter,
+        highlights=data.get("highlights", []),
+        word_count=len(letter.split()),
+    )
+
+
+def build_cover_letter_prompt(cv_text: str, job_description: str) -> str:
+    return f"""
+You are an expert career coach helping a student write a cover letter.
+
+Write a tailored, professional cover letter for the target role using only facts
+from the CV. Rules:
+- Use ONLY real facts from the CV. Never invent experience, skills, or numbers.
+- Keep it under 300 words, in 3 to 4 short paragraphs (greeting, why-you-fit,
+  closing). Clear and supportive, not flowery.
+- Connect the candidate's real strengths to what the role needs.
+- Do not include placeholder brackets like [Company]; if a detail is unknown,
+  write naturally without it.
+- Also return "highlights": a short list of which CV points you mapped to the
+  role.
+
+Target job description:
+{job_description}
+
+CV text:
 {cv_text}
 """

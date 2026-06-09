@@ -9,8 +9,12 @@ AI rewrite.
 import re
 
 from app.schemas import (
+    CoverLetterResponse,
+    CvBuilderInput,
     CvContact,
+    CvEducationEntry,
     CvExperienceEntry,
+    CvProjectEntry,
     CvQuestion,
     CvQuestionsResponse,
     StructuredCv,
@@ -161,3 +165,70 @@ def generate_cv_questions(
     )
 
     return CvQuestionsResponse(filename=filename, questions=questions[:6])
+
+
+def _raw_to_bullets(raw: str) -> list[str]:
+    parts = re.split(r"[\n.;]+", raw or "")
+    return [part.strip().capitalize() for part in parts if part.strip()]
+
+
+def build_cv_from_input(payload: CvBuilderInput) -> StructuredCv:
+    """Rule-based assembly of a CV from the builder form (no AI rewriting)."""
+    return StructuredCv(
+        filename="cryorapply-cv.pdf",
+        full_name=payload.full_name or "Your Name",
+        headline=payload.target_role,
+        contact=payload.contact,
+        summary=payload.summary,
+        skills=payload.skills,
+        experience=[
+            CvExperienceEntry(
+                title=item.title,
+                organization=item.organization,
+                period=item.period,
+                bullets=_raw_to_bullets(item.raw),
+            )
+            for item in payload.experience
+        ],
+        education=[
+            CvEducationEntry(
+                school=item.school,
+                program=item.program,
+                period=item.period,
+                details=item.details,
+            )
+            for item in payload.education
+        ],
+        projects=[
+            CvProjectEntry(name=item.name, bullets=_raw_to_bullets(item.raw))
+            for item in payload.projects
+        ],
+        languages=payload.languages,
+        certifications=payload.certifications,
+        notes=[
+            "This CV was assembled with the rule-based fallback. "
+            "Add a GEMINI_API_KEY for polished, action-verb wording and a tailored summary.",
+        ],
+    )
+
+
+def generate_cover_letter(cv_text: str, job_description: str) -> CoverLetterResponse:
+    """Simple template cover letter used when Gemini is not configured."""
+    letter = (
+        "Dear Hiring Team,\n\n"
+        "I am writing to express my interest in this role. My background and the "
+        "skills described in my CV align with what the position requires, and I am "
+        "eager to contribute and keep learning.\n\n"
+        "Through my studies, projects, and experience I have built practical skills "
+        "that I am ready to apply to your team. I would welcome the chance to discuss "
+        "how I can support your goals.\n\n"
+        "Thank you for your time and consideration.\n\n"
+        "Sincerely,\n"
+    )
+    return CoverLetterResponse(
+        cover_letter=letter,
+        highlights=[
+            "Add a GEMINI_API_KEY to generate a cover letter tailored to your CV and the job.",
+        ],
+        word_count=len(letter.split()),
+    )
