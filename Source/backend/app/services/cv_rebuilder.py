@@ -34,6 +34,7 @@ def rebuild_cv_text(
     filename: str,
     cv_text: str,
     job_description: str | None = None,
+    ai_configured: bool = False,
 ) -> StructuredCv:
     lines = [line.strip() for line in cv_text.splitlines() if line.strip()]
     text = "\n".join(lines)
@@ -61,6 +62,16 @@ def rebuild_cv_text(
         else []
     )
 
+    fallback_note = (
+        "AI rewrite was temporarily unavailable, so this CV was rebuilt with the "
+        "basic rule-based fallback. Try again after checking the backend logs."
+        if ai_configured
+        else (
+            "This CV was restructured with the rule-based fallback. "
+            "Add a GEMINI_API_KEY to rewrite the wording and detect sections automatically."
+        )
+    )
+
     return StructuredCv(
         filename=filename,
         full_name=full_name,
@@ -81,10 +92,7 @@ def rebuild_cv_text(
         projects=[],
         languages=[],
         certifications=[],
-        notes=[
-            "This CV was restructured with the rule-based fallback. "
-            "Add a GEMINI_API_KEY to rewrite the wording and detect sections automatically.",
-        ],
+        notes=[fallback_note],
     )
 
 

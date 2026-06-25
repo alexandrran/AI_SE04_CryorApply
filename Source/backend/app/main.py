@@ -248,6 +248,7 @@ async def rebuild_cv(
             filename=filename,
             cv_text=resolved_text,
             job_description=job_description,
+            ai_configured=bool(os.getenv("GEMINI_API_KEY")),
         )
 
     return merge_extra_links(rebuilt, extra_links)

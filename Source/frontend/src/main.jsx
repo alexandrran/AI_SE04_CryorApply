@@ -8,7 +8,6 @@ import {
   useTransform
 } from "framer-motion";
 import { jsPDF } from "jspdf";
-import html2canvas from "html2canvas";
 import {
   ArrowLeft,
   ArrowRight,
@@ -504,55 +503,161 @@ function App() {
     }
   };
 
-  // Pixel-perfect export: rasterize the exact preview node the user sees, then
-  // paginate it across A4 pages so the PDF matches the web 1:1.
-  const downloadRebuiltCv = async () => {
-    const node = cvDocRef.current;
-    if (!node || !rebuiltCv) return;
+  const downloadRebuiltCv = () => {
+    if (!rebuiltCv) return;
 
     try {
-      if (document.fonts?.ready) {
-        await document.fonts.ready;
-      }
-
-      const canvas = await html2canvas(node, {
-        scale: 2,
-        backgroundColor: "#ffffff",
-        useCORS: true,
-        logging: false
-      });
-
-      const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF({ unit: "pt", format: "a4" });
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 48;
+      const maxWidth = pageWidth - margin * 2;
+      let y = 48;
 
-      // Fit the whole CV onto a single A4 page (scale down if it is taller).
-      let renderW = pageW;
-      let renderH = (canvas.height * renderW) / canvas.width;
-      if (renderH > pageH) {
-        renderH = pageH;
-        renderW = (canvas.width * renderH) / canvas.height;
-      }
-      const offsetX = (pageW - renderW) / 2;
-      const offsetY = 0;
+      const ensureSpace = (height = 18) => {
+        if (y + height > pageHeight - margin) {
+          pdf.addPage();
+          y = margin;
+        }
+      };
 
-      pdf.addImage(imgData, "PNG", offsetX, offsetY, renderW, renderH);
+      const addText = (text, options = {}) => {
+        const {
+          size = 10,
+          style = "normal",
+          gap = 12,
+          indent = 0,
+          width = maxWidth - indent,
+          color = [32, 40, 45]
+        } = options;
+        const value = String(text || "").trim();
+        if (!value) return;
 
-      // Overlay real, clickable PDF links on top of the rasterized anchors.
-      const nodeRect = node.getBoundingClientRect();
-      const scaleX = renderW / nodeRect.width;
-      const scaleY = renderH / nodeRect.height;
-      node.querySelectorAll("a[href]").forEach((anchor) => {
-        const rect = anchor.getBoundingClientRect();
-        pdf.link(
-          offsetX + (rect.left - nodeRect.left) * scaleX,
-          offsetY + (rect.top - nodeRect.top) * scaleY,
-          rect.width * scaleX,
-          rect.height * scaleY,
-          { url: anchor.href }
-        );
+        pdf.setFont("helvetica", style);
+        pdf.setFontSize(size);
+        pdf.setTextColor(...color);
+        const lines = pdf.splitTextToSize(value, width);
+        ensureSpace(lines.length * gap + 2);
+        pdf.text(lines, margin + indent, y);
+        y += lines.length * gap + 2;
+      };
+
+      const addSection = (title) => {
+        y += 8;
+        ensureSpace(24);
+        pdf.setDrawColor(38, 96, 88);
+        pdf.setLineWidth(0.8);
+        pdf.line(margin, y, pageWidth - margin, y);
+        y += 14;
+        addText(title.toUpperCase(), {
+          size: 10,
+          style: "bold",
+          gap: 11,
+          color: [38, 96, 88]
+        });
+      };
+
+      const addBullet = (text) => {
+        addText(`- ${text}`, { indent: 12, width: maxWidth - 12, gap: 11 });
+      };
+
+      const addEntry = (title, period, bullets = [], details = "") => {
+        ensureSpace(28);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(10.5);
+        pdf.setTextColor(22, 28, 32);
+        pdf.text(String(title || "").trim(), margin, y);
+        if (period) {
+          pdf.setFont("helvetica", "normal");
+          pdf.setFontSize(9);
+          pdf.setTextColor(90, 99, 104);
+          pdf.text(String(period).trim(), pageWidth - margin, y, { align: "right" });
+        }
+        y += 13;
+
+        if (details) {
+          addText(details, { gap: 11 });
+        }
+        bullets.forEach(addBullet);
+        y += 3;
+      };
+
+      const contact = rebuiltCv.contact || {};
+      const links = contact.links || [];
+      const contactItems = [
+        contact.email,
+        contact.phone,
+        contact.location,
+        ...links
+      ].filter(Boolean);
+
+      addText(rebuiltCv.full_name || "Your Name", {
+        size: 22,
+        style: "bold",
+        gap: 20,
+        color: [18, 26, 30]
       });
+      addText(rebuiltCv.headline, {
+        size: 12,
+        style: "bold",
+        gap: 14,
+        color: [38, 96, 88]
+      });
+      addText(contactItems.join(" | "), {
+        size: 9,
+        gap: 11,
+        color: [76, 85, 90]
+      });
+
+      if (rebuiltCv.summary) {
+        addSection("Summary");
+        addText(rebuiltCv.summary, { gap: 11 });
+      }
+
+      if (rebuiltCv.skills?.length) {
+        addSection("Skills");
+        addText(rebuiltCv.skills.join(", "), { gap: 11 });
+      }
+
+      if (rebuiltCv.experience?.length) {
+        addSection("Experience");
+        rebuiltCv.experience.forEach((entry) => {
+          addEntry(
+            [entry.title, entry.organization].filter(Boolean).join(" - "),
+            entry.period,
+            entry.bullets || []
+          );
+        });
+      }
+
+      if (rebuiltCv.education?.length) {
+        addSection("Education");
+        rebuiltCv.education.forEach((entry) => {
+          addEntry(
+            [entry.program, entry.school].filter(Boolean).join(" - "),
+            entry.period,
+            [],
+            entry.details
+          );
+        });
+      }
+
+      if (rebuiltCv.projects?.length) {
+        addSection("Projects");
+        rebuiltCv.projects.forEach((entry) => {
+          addEntry(entry.name, "", entry.bullets || []);
+        });
+      }
+
+      if (rebuiltCv.languages?.length) {
+        addSection("Languages");
+        addText(rebuiltCv.languages.join(", "), { gap: 11 });
+      }
+
+      if (rebuiltCv.certifications?.length) {
+        addSection("Certifications");
+        rebuiltCv.certifications.forEach(addBullet);
+      }
 
       const safeName = (rebuiltCv.full_name || "cv")
         .toLowerCase()

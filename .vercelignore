@@ -1,0 +1,13 @@
+.env
+.env.*
+.venv/
+.idea/
+.vscode/
+.DS_Store
+node_modules/
+Source/frontend/node_modules/
+dist/
+Source/frontend/dist/
+__pycache__/
+*.py[cod]
+.git/
