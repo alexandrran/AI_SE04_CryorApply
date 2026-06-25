@@ -32,7 +32,7 @@ import {
   Wand2,
   X
 } from "lucide-react";
-import "../null.css";
+import "./styles.css";
 
 // In production (Vercel) the API is served from the same origin, so use a
 // relative path. In local dev the Vite server (5173) talks to uvicorn (8000).
@@ -814,7 +814,7 @@ function App() {
                 <button className="ghost" type="button" onClick={() => setStep("cv")}>
                   <ArrowLeft size={18} /> Back
                 </button>
-                <button className="primary" type="button" onClick={runReview}>
+                <button className="primary" type="button" onClick={() => runReview()}>
                   Analyze CV <ArrowRight size={18} />
                 </button>
               </div>

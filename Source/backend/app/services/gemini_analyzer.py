@@ -16,6 +16,22 @@ from app.schemas import (
 DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 MAX_CV_TEXT_CHARS = 12000
 
+# Repo root: services -> app -> backend -> Source -> repo root.
+_PROJECT_ROOT = Path(__file__).resolve().parents[4]
+
+
+def _load_env() -> None:
+    """Load environment variables from the repo's env files.
+
+    Supports both ``.env`` and ``.env.local`` (the convention the project's
+    frontend already uses) so the Gemini key works in local development. On
+    Vercel the variables are already set, and ``load_dotenv`` never overrides
+    existing values, so this is a no-op there.
+    """
+    load_dotenv(_PROJECT_ROOT / ".env")
+    load_dotenv(_PROJECT_ROOT / ".env.local")
+    load_dotenv()
+
 CV_REVIEW_SCHEMA = {
     "type": "object",
     "properties": {
@@ -94,9 +110,7 @@ def analyze_cv_with_gemini(
     cv_text: str,
     job_description: str | None = None,
 ) -> CvReviewResponse | None:
-    project_root = Path(__file__).resolve().parents[4]
-    load_dotenv(project_root / ".env")
-    load_dotenv()
+    _load_env()
 
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
@@ -251,9 +265,7 @@ def rebuild_cv_with_gemini(
     job_description: str | None = None,
     answers: list[dict] | None = None,
 ) -> StructuredCv | None:
-    project_root = Path(__file__).resolve().parents[4]
-    load_dotenv(project_root / ".env")
-    load_dotenv()
+    _load_env()
 
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
@@ -372,9 +384,7 @@ def generate_cv_questions_with_gemini(
     cv_text: str,
     job_description: str | None = None,
 ) -> CvQuestionsResponse | None:
-    project_root = Path(__file__).resolve().parents[4]
-    load_dotenv(project_root / ".env")
-    load_dotenv()
+    _load_env()
 
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
@@ -437,9 +447,7 @@ Source CV text:
 
 
 def build_cv_from_input_with_gemini(payload: CvBuilderInput) -> StructuredCv | None:
-    project_root = Path(__file__).resolve().parents[4]
-    load_dotenv(project_root / ".env")
-    load_dotenv()
+    _load_env()
 
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
@@ -548,9 +556,7 @@ def generate_cover_letter_with_gemini(
     cv_text: str,
     job_description: str,
 ) -> CoverLetterResponse | None:
-    project_root = Path(__file__).resolve().parents[4]
-    load_dotenv(project_root / ".env")
-    load_dotenv()
+    _load_env()
 
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
