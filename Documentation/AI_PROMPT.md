@@ -6,6 +6,19 @@ Generate structured CV feedback for students and beginner job seekers. The AI
 should focus on practical improvements that help the user apply for internships,
 part-time roles, and junior positions.
 
+The current implementation uses Gemini for several related AI tasks:
+
+- CV review and scoring.
+- Job description matching.
+- Rewrite suggestions.
+- CV-specific follow-up questions.
+- ATS-friendly CV rebuild.
+- Cover letter generation.
+- CV generation from builder form input.
+
+If Gemini is unavailable or no `GEMINI_API_KEY` is configured, the backend uses
+rule-based fallbacks so the demo can still run.
+
 ## Input
 
 ```text
@@ -46,6 +59,9 @@ JOB_DESCRIPTION:
 }
 ```
 
+The production schema also includes `priority_fixes`, `rewrite_suggestions`,
+and `job_match` so the frontend can show actionable fixes and role matching.
+
 ## Categories
 
 - `Structure`: sections, order, readability, completeness.
@@ -61,3 +77,5 @@ JOB_DESCRIPTION:
 - Do not invent experience, degrees, certifications, or employers.
 - If information is missing, recommend what the user can add.
 - Scores must be integers from `0` to `100`.
+- For rebuild and cover letter generation, use only facts from the CV and the
+  user's answers. Do not invent employers, achievements, education, or links.

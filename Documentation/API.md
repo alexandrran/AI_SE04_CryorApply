@@ -8,6 +8,12 @@ Local development:
 http://localhost:8000
 ```
 
+Production:
+
+```text
+https://ai-se-04-cryor-apply.vercel.app
+```
+
 ## Health Check
 
 ```http
@@ -19,6 +25,25 @@ Response:
 ```json
 {
   "status": "ok"
+}
+```
+
+## Diagnostics
+
+```http
+GET /api/diagnostics
+```
+
+Returns safe runtime metadata only. It confirms whether the Gemini key is
+available to the running backend without returning the key value.
+
+Example response:
+
+```json
+{
+  "gemini_key_present": true,
+  "gemini_model": "gemini-2.5-flash",
+  "google_genai_version": "1.49.0"
 }
 ```
 
@@ -196,6 +221,87 @@ Response:
   "notes": ["No measurable results were provided; add numbers where possible"]
 }
 ```
+
+## Generate Cover Letter
+
+Creates a tailored cover letter from the user's CV and a target job
+description. This endpoint requires a job description.
+
+```http
+POST /api/cover-letter
+Content-Type: multipart/form-data
+```
+
+Form fields:
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `file` | `PDF` or `DOCX` file | No | CV uploaded by the user. Maximum size: 10 MB |
+| `cv_text` | `string` | No | CV text pasted by the user. Required when no file is uploaded |
+| `job_description` | `string` | Yes | Target role or job description used to tailor the letter |
+
+Response:
+
+```json
+{
+  "cover_letter": "Dear Hiring Team,...",
+  "highlights": [
+    "Tailored to the target role",
+    "Uses facts from the CV only"
+  ],
+  "word_count": 238
+}
+```
+
+## Generate CV From Builder Input
+
+Builds a clean structured CV from form input for users who do not already have
+a CV file. Gemini is used when configured; otherwise the backend assembles a
+rule-based structured CV.
+
+```http
+POST /api/cv/generate
+Content-Type: application/json
+```
+
+Request:
+
+```json
+{
+  "full_name": "Alex Johnson",
+  "target_role": "Junior Full-Stack Developer Intern",
+  "contact": {
+    "email": "alex@example.com",
+    "phone": "+49 157 12345678",
+    "location": "Berlin, Germany",
+    "links": ["github.com/alex"]
+  },
+  "summary": "Computer Science student interested in web development.",
+  "skills": ["Python", "React", "FastAPI", "SQL"],
+  "experience": [],
+  "education": [
+    {
+      "school": "Technical University of Berlin",
+      "program": "BSc Computer Science",
+      "period": "2023-2027",
+      "details": "Relevant coursework: Databases, Web Development"
+    }
+  ],
+  "projects": [
+    {
+      "name": "AI CV Reviewer",
+      "raw": "Built a React and FastAPI app that reviews CVs with AI."
+    }
+  ],
+  "languages": ["English", "German"],
+  "certifications": [],
+  "job_description": "Junior developer internship with React and Python."
+}
+```
+
+Response:
+
+Returns the same `StructuredCv` shape as `POST /api/cv/rebuild`.
 
 ## Error Responses
 

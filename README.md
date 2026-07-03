@@ -8,6 +8,21 @@ CryorApply is an AI-based web application for students and beginner job seekers.
 
 Many students and beginner job seekers find it hard to make a good CV. They often do not know what information to include, how to describe their skills, or how to make the CV look professional. Because of this, their CVs may look weak and they may have fewer chances to get a job interview.
 
+## Current Implemented Features
+
+- AI CV review for uploaded PDF/DOCX files or pasted CV text.
+- Optional job description matching with missing keywords and role-fit feedback.
+- Rewrite suggestions with an apply-and-re-score loop for pasted CV text.
+- Interactive CV rebuild with tailored follow-up questions.
+- ATS-friendly rebuilt CV preview with text-based PDF download.
+- Cover letter generator based on the CV and target job description.
+- CV builder from scratch for users who do not already have a CV.
+- Vercel deployment with the Vite frontend and FastAPI backend in one project.
+
+Production demo:
+
+https://ai-se-04-cryor-apply.vercel.app
+
 ## Team and Roles
 
 ### Alexandr An - Team Lead / Backend Developer
@@ -51,9 +66,10 @@ Responsible for backend logic, PDF/DOCX text extraction, Supabase database and s
 | 9 June 2026 | Konstantin Shevtsov | Redesign frontend into a step-by-step wizard (CV, target role, review) with framer-motion animations, animated score ring, skeleton loading, and a refreshed visual style |
 | 9 June 2026 | Alexandr An | Added apply rewrites and re-score flow: users can apply suggested CV text improvements, re-run the review, and see the score change without changing the CV structure |
 | 9 June 2026 | Konstantin Shevtsov | Added Rebuild CV feature: new POST /api/cv/rebuild endpoint restructures an uploaded PDF/DOCX or pasted CV into a clean ATS-friendly template (Gemini with rule-based fallback), with a live preview and downloadable PDF; documented in API.md |
-| 9 June 2026 | Konstantin Shevtsov | Made Rebuild CV interactive and Harvard-based: new POST /api/cv/questions generates CV-specific follow-up questions whose answers feed the rebuild; rewriting now follows Harvard Career Services resume rules; PDF export is pixel-perfect to the on-screen preview via html2canvas; added diagnostics endpoint and error logging for the Gemini fallback |
-| 9 June 2026 | Maksim Pinchuk | Added Cover Letter generator (POST /api/cover-letter) and CV Builder from scratch (POST /api/cv/generate) with Gemini integration and rule-based fallbacks; added frontend panels for both features with mode tabs; fixed PDF export to fit CV on a single A4 page and overlay clickable hyperlinks over contact links |
+| 9 June 2026 | Konstantin Shevtsov | Made Rebuild CV interactive and Harvard-based: new POST /api/cv/questions generates CV-specific follow-up questions whose answers feed the rebuild; rewriting now follows Harvard Career Services resume rules; added diagnostics endpoint and error logging for the Gemini fallback |
+| 9 June 2026 | Maksim Pinchuk | Added Cover Letter generator (POST /api/cover-letter) and CV Builder from scratch (POST /api/cv/generate) with Gemini integration and rule-based fallbacks; added frontend panels for both features with mode tabs; added rebuilt CV PDF export support |
 | 25 June 2026 | Konstantin Shevtsov | QA pass over all main features (CV review, questions, rebuild, cover letter, builder) across rule-based and Gemini paths; fixed broken stylesheet wiring (main.jsx imported an accidental duplicate `null.css` instead of the maintained `src/styles.css`, so style edits were silently ignored) and removed the stray file; backend now also loads `.env.local` so the Gemini key works in local dev, with the repeated env-loading deduplicated into a `_load_env()` helper; fixed the Analyze CV button passing the click event as options to `runReview` |
+| 03 July 2026 | Alexandr An | Final presentation polish: replaced rebuilt CV export with a text-based PDF instead of a screenshot image, added `.vercelignore` to protect local secrets during deployment, verified production Vercel deployment, and updated documentation for the final demo |
 
 ## Deploy to Vercel (serverless)
 
@@ -67,6 +83,8 @@ Relevant files:
 - `api/index.py` is the serverless entry point; it re-exports the existing
   FastAPI app from `Source/backend/app/main.py` (no code duplication).
 - `requirements.txt` (repo root) provides the Python dependencies.
+- `.vercelignore` prevents local secrets and development folders from being
+  uploaded by Vercel CLI.
 
 Steps:
 
