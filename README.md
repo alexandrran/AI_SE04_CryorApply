@@ -70,6 +70,8 @@ Responsible for backend logic, PDF/DOCX text extraction, Supabase database and s
 | 9 June 2026 | Maksim Pinchuk | Added Cover Letter generator (POST /api/cover-letter) and CV Builder from scratch (POST /api/cv/generate) with Gemini integration and rule-based fallbacks; added frontend panels for both features with mode tabs; added rebuilt CV PDF export support |
 | 25 June 2026 | Konstantin Shevtsov | QA pass over all main features (CV review, questions, rebuild, cover letter, builder) across rule-based and Gemini paths; fixed broken stylesheet wiring (main.jsx imported an accidental duplicate `null.css` instead of the maintained `src/styles.css`, so style edits were silently ignored) and removed the stray file; backend now also loads `.env.local` so the Gemini key works in local dev, with the repeated env-loading deduplicated into a `_load_env()` helper; fixed the Analyze CV button passing the click event as options to `runReview` |
 | 03 July 2026 | Alexandr An | Final presentation polish: replaced rebuilt CV export with a text-based PDF instead of a screenshot image, added `.vercelignore` to protect local secrets during deployment, verified production Vercel deployment, and updated documentation for the final demo |
+| 04 July 2026 | Alexandr An | Added the final Gantt chart image to the Documentation folder |
+| 04 July 2026 | Entire Team | Added the final project presentation to the Documentation folder |
 
 ## Deploy to Vercel (serverless)
 
